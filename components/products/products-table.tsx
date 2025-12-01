@@ -1,19 +1,51 @@
 "use client"
 import Link from "next/link"
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MoreHorizontal, Edit, Trash2, Eye, Package } from "lucide-react"
+import { productsService, Product } from "@/lib/api"
+import { toast } from "sonner"
 
 interface ProductsTableProps {
-  products: any[]
+  products: Product[]
+  onProductDeleted?: () => void
 }
 
-export function ProductsTable({ products }: ProductsTableProps) {
+export function ProductsTable({ products, onProductDeleted }: ProductsTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   // Ensure products is always an array
   const safeProducts = Array.isArray(products) ? products : []
+
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return
+
+    setIsDeleting(true)
+    try {
+      await productsService.deleteProduct(productToDelete.id)
+      toast.success('Produit supprimé avec succès')
+      setDeleteDialogOpen(false)
+      setProductToDelete(null)
+      onProductDeleted?.()
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error)
+      toast.error('Erreur lors de la suppression du produit')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("fr-FR").format(price)
@@ -60,7 +92,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
                     {product.image_url ? (
                       <img
                         src={product.image_url || "/placeholder.svg"}
-                        alt={product.name}
+                        alt={product.name_fr}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -70,21 +102,21 @@ export function ProductsTable({ products }: ProductsTableProps) {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{product.name}</p>
+                    <p className="font-medium">{product.name_fr}</p>
                     {product.name_en && <p className="text-xs text-muted-foreground">{product.name_en}</p>}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <p className="font-mono text-sm">{product.sku}</p>
+                    <p className="font-mono text-sm">{product.code}</p>
                     {product.barcode && <p className="text-xs text-muted-foreground">{product.barcode}</p>}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">{product.product_categories?.name || "Non catégorisé"}</Badge>
+                  <Badge variant="outline">{product.category?.name_fr || "Non catégorisé"}</Badge>
                 </TableCell>
-                <TableCell className="text-right font-semibold">{formatPrice(product.price)}</TableCell>
-                <TableCell className="text-center">{getStockBadge(product.stock_quantity)}</TableCell>
+                <TableCell className="text-right font-semibold">{formatPrice(product.selling_price_xof)}</TableCell>
+                <TableCell className="text-center">{getStockBadge(product.current_stock || 0)}</TableCell>
                 <TableCell className="text-center">
                   {product.is_active ? (
                     <Badge className="bg-primary/10 text-primary border-primary/20">Actif</Badge>
@@ -112,7 +144,10 @@ export function ProductsTable({ products }: ProductsTableProps) {
                           Modifier
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => handleDeleteClick(product)}
+                      >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Supprimer
                       </DropdownMenuItem>
@@ -124,6 +159,34 @@ export function ProductsTable({ products }: ProductsTableProps) {
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer le produit "{productToDelete?.name_fr}" ?
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

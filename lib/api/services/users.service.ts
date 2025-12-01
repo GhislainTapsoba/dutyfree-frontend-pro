@@ -1,4 +1,4 @@
-import { api } from '../client'
+import { api } from '@/lib/api/client'  // ✅ Chemin absolu alias
 
 export interface User {
   id: string
@@ -51,4 +51,4 @@ export const usersService = {
   async getRoles() {
     return api.get<Role[]>('/roles')
   },
-}
+} as const  // ✅ TypeScript readonly

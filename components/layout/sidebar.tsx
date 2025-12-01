@@ -56,6 +56,7 @@ const menuItems: { title: string; items: MenuItem[] }[] = [
   {
     title: "Gestion",
     items: [
+      {name: "Catégories", href: "/dashboard/categories", icon: Tag, permission: "categories.view" },
       { name: "Produits", href: "/dashboard/products", icon: Package, permission: "products.view" },
       { name: "Fiches techniques", href: "/dashboard/technical-sheets", icon: FileCheck, permission: "technical_sheets.view" },
       { name: "Stock", href: "/dashboard/stock", icon: Boxes, permission: "stock.view" },
@@ -105,10 +106,7 @@ export function Sidebar({ user }: SidebarProps) {
     }
   }, [])
 
-  // Debug: afficher le rôle et les permissions
-  useEffect(() => {
-    console.log('🔍 Sidebar Debug - Role:', roleCode, 'Loading:', loading)
-  }, [roleCode, loading])
+
 
   // Sauvegarder l'état de la sidebar dans localStorage à chaque changement
   const toggleCollapsed = () => {
@@ -148,8 +146,7 @@ export function Sidebar({ user }: SidebarProps) {
                 !item.permission || can(item.permission)
               )
 
-          // Debug: afficher le nombre d'items visibles
-          console.log(`📋 Section "${section.title}":`, visibleItems.length, 'items visibles')
+
 
           // Ne pas afficher la section si aucun item n'est visible
           if (visibleItems.length === 0) return null

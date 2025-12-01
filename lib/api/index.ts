@@ -2,6 +2,7 @@
  * Point d'entrée central pour tous les services API
  */
 
+// ✅ Exports relatifs corrects
 export * from './client'
 export * from './services/auth.service'
 export * from './services/products.service'
@@ -13,7 +14,7 @@ export * from './services/suppliers.service'
 export * from './services/payments.service'
 export * from './services/notifications.service'
 
-// Export des services pour faciliter l'utilisation
+// ✅ Imports relatifs corrects APRÈS exports
 import { authService } from './services/auth.service'
 import { productsService } from './services/products.service'
 import { salesService } from './services/sales.service'
@@ -34,4 +35,4 @@ export const services = {
   suppliers: suppliersService,
   payments: paymentsService,
   notifications: notificationsService,
-}
+} as const

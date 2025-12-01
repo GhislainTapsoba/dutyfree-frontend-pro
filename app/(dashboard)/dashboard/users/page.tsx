@@ -21,8 +21,14 @@ export default function UsersPage() {
           usersService.getRoles(),
         ])
 
-        if (usersRes.data) setUsers(usersRes.data)
-        if (rolesRes.data) setRoles(rolesRes.data)
+        console.log('usersRes:', usersRes)
+        console.log('rolesRes:', rolesRes)
+        
+        if (usersRes.data?.data) setUsers(usersRes.data.data)
+        else if (Array.isArray(usersRes.data)) setUsers(usersRes.data)
+        
+        if (rolesRes.data?.data) setRoles(rolesRes.data.data)
+        else if (Array.isArray(rolesRes.data)) setRoles(rolesRes.data)
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error)
       } finally {

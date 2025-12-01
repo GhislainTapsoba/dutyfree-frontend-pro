@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,11 +23,17 @@ interface HeaderProps {
 export function Header({ user }: HeaderProps) {
   const router = useRouter()
   const [currency, setCurrency] = useState("XOF")
+  const [mounted, setMounted] = useState(false)
+  const [hasToken, setHasToken] = useState(false)
+  
+  useEffect(() => {
+    setMounted(true)
+    setHasToken(document.cookie.includes('auth_token='))
+  }, [])
 
   const handleLogout = async () => {
     await authService.logout()
-    router.push("/login")
-    router.refresh()
+    window.location.href = '/login'
   }
 
   const currencies = ["XOF", "EUR", "USD"]
@@ -78,8 +84,8 @@ export function Header({ user }: HeaderProps) {
                 <User className="w-4 h-4 text-primary-foreground" />
               </div>
               <div className="text-left hidden sm:block">
-                <p className="text-sm font-medium">{user?.first_name || "Utilisateur"}</p>
-                <p className="text-xs text-muted-foreground">{user?.roles?.name || "Caissier"}</p>
+                <p className="text-sm font-medium">{user?.first_name || user?.full_name || "Utilisateur"}</p>
+                <p className="text-xs text-muted-foreground">{user?.roles?.name || user?.role_name || "Caissier"}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>

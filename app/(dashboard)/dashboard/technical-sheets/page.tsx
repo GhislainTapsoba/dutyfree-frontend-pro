@@ -104,16 +104,29 @@ export default function TechnicalSheetsPage() {
   const loadData = async () => {
     setLoading(true)
     try {
+      console.log("Chargement des données...")
       const [sheetsRes, productsRes] = await Promise.all([
-        fetch("http://localhost:3001/api/technical-sheets"),
-        fetch("http://localhost:3001/api/products"),
+        fetch("/api/technical-sheets"),
+        fetch("/api/products"),
       ])
+
+      console.log("Réponses reçues:", { sheetsStatus: sheetsRes.status, productsStatus: productsRes.status })
 
       const sheetsData = await sheetsRes.json()
       const productsData = await productsRes.json()
 
+      console.log("Données reçues:", { sheetsData, productsData })
+
       if (sheetsData.data) setSheets(sheetsData.data)
-      if (productsData.data) setProducts(productsData.data)
+      if (Array.isArray(productsData)) {
+        console.log("Produits chargés (array):", productsData.length)
+        setProducts(productsData)
+      } else if (productsData.data) {
+        console.log("Produits chargés (data):", productsData.data.length)
+        setProducts(productsData.data)
+      } else {
+        console.log("Aucun produit trouvé")
+      }
     } catch (error) {
       console.error("Erreur lors du chargement:", error)
       toast.error("Erreur lors du chargement")
@@ -195,8 +208,8 @@ export default function TechnicalSheetsPage() {
 
     try {
       const url = editingSheet
-        ? `http://localhost:3001/api/technical-sheets/${editingSheet.id}`
-        : "http://localhost:3001/api/technical-sheets"
+        ? `/api/technical-sheets/${editingSheet.id}`
+        : "/api/technical-sheets"
 
       const response = await fetch(url, {
         method: editingSheet ? "PUT" : "POST",
@@ -223,7 +236,7 @@ export default function TechnicalSheetsPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette fiche technique ?")) return
 
     try {
-      const response = await fetch(`http://localhost:3001/api/technical-sheets/${id}`, {
+      const response = await fetch(`/api/technical-sheets/${id}`, {
         method: "DELETE",
       })
 

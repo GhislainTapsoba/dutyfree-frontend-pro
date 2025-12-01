@@ -13,6 +13,12 @@ export type Permission =
   | "pos.apply_discount"
   | "pos.apply_promotion"
 
+  // Catégories
+  | "categories.view"
+  | "categories.create"
+  | "categories.edit"
+  | "categories.delete"
+
   // Produits
   | "products.view"
   | "products.create"
@@ -119,6 +125,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "pos.cancel_sale",
     "pos.apply_discount",
     "pos.apply_promotion",
+    "categories.view",
+    "categories.create",
+    "categories.edit",
+    "categories.delete",
     "products.view",
     "products.create",
     "products.edit",
@@ -190,6 +200,9 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "pos.cancel_sale",
     "pos.apply_discount",
     "pos.apply_promotion",
+    "categories.view",
+    "categories.create",
+    "categories.edit",
     "products.view",
     "products.create",
     "products.edit",
@@ -326,6 +339,7 @@ export function getRolePermissions(roleCode: string): Permission[] {
 export const PAGE_PERMISSIONS: Record<string, Permission[]> = {
   "/dashboard": ["dashboard.view"],
   "/dashboard/pos": ["pos.view"],
+  "/dashboard/categories": ["categories.view"],
   "/dashboard/products": ["products.view"],
   "/dashboard/products/new": ["products.create"],
   "/dashboard/technical-sheets": ["technical_sheets.view"],

@@ -56,7 +56,6 @@ export default function NotificationsPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams({
-        user_id: "current-user-id", // Replace with actual user ID
         limit: "100",
       })
 
@@ -68,7 +67,14 @@ export default function NotificationsPage() {
         params.append("unread_only", "true")
       }
 
-      const response = await fetch(`${API_URL}/notifications?${params}`)
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth_token='))
+        ?.split('=')[1]
+      
+      const response = await fetch(`${API_URL}/notifications?${params}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -90,8 +96,16 @@ export default function NotificationsPage() {
 
   const fetchStats = async () => {
     try {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('auth_token='))
+        ?.split('=')[1]
+      
       const response = await fetch(
-        `${API_URL}/notifications/stats?user_id=current-user-id`
+        `${API_URL}/notifications/stats`,
+        {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       )
       const result = await response.json()
 
@@ -446,3 +460,4 @@ export default function NotificationsPage() {
     </div>
   )
 }
+

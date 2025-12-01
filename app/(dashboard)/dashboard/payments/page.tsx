@@ -14,7 +14,10 @@ export default function PaymentsPage() {
       setLoading(true)
       try {
         const response = await paymentsService.getPayments()
-        if (response.data) setPayments(response.data)
+        console.log('[Payments] response:', response)
+        if (response.data?.data) setPayments(response.data.data)
+        else if (Array.isArray(response.data)) setPayments(response.data)
+        else setPayments([])
       } catch (error) {
         console.error("Erreur lors du chargement des paiements:", error)
       } finally {
@@ -33,8 +36,11 @@ export default function PaymentsPage() {
     )
   }
 
+  // S'assurer que payments est un tableau
+  const paymentsList = Array.isArray(payments) ? payments : []
+  
   const today = new Date().toISOString().split("T")[0]
-  const todayPayments = payments.filter((p) => p.created_at.startsWith(today))
+  const todayPayments = paymentsList.filter((p) => p.created_at.startsWith(today))
   const totalToday = todayPayments.reduce((sum, p) => sum + Number(p.amount_xof), 0)
 
   const getMethodIcon = (code: string) => {
@@ -112,10 +118,10 @@ export default function PaymentsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {payments.length === 0 ? (
+            {paymentsList.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Aucun paiement enregistré</p>
             ) : (
-              payments.map((payment) => (
+              paymentsList.map((payment) => (
                 <div
                   key={payment.id}
                   className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-border"

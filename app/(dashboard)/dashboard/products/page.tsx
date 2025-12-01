@@ -13,35 +13,35 @@ export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      try {
-        const [productsRes, categoriesRes] = await Promise.all([
-          productsService.getProducts(),
-          productsService.getCategories(),
-        ])
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const [productsRes, categoriesRes] = await Promise.all([
+        productsService.getProducts(),
+        productsService.getCategories(),
+      ])
 
-        if (productsRes.data && Array.isArray(productsRes.data)) {
-          setProducts(productsRes.data)
-        } else {
-          setProducts([])
-        }
-
-        if (categoriesRes.data && Array.isArray(categoriesRes.data)) {
-          setCategories(categoriesRes.data)
-        } else {
-          setCategories([])
-        }
-      } catch (error) {
-        console.error("Erreur lors du chargement des données:", error)
+      if (productsRes.data && Array.isArray(productsRes.data)) {
+        setProducts(productsRes.data)
+      } else {
         setProducts([])
-        setCategories([])
-      } finally {
-        setLoading(false)
       }
-    }
 
+      if (categoriesRes.data && Array.isArray(categoriesRes.data)) {
+        setCategories(categoriesRes.data)
+      } else {
+        setCategories([])
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des données:", error)
+      setProducts([])
+      setCategories([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
@@ -69,7 +69,7 @@ export default function ProductsPage() {
       </div>
 
       <ProductFilters categories={categories} />
-      <ProductsTable products={products} />
+      <ProductsTable products={products} onProductDeleted={loadData} />
     </div>
   )
 }

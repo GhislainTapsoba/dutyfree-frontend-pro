@@ -18,12 +18,12 @@ export function StockOverview({ products }: StockOverviewProps) {
   const safeProducts = Array.isArray(products) ? products : []
 
   const filteredProducts = safeProducts.filter(
-    (p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.sku?.toLowerCase().includes(search.toLowerCase()),
+    (p) => (p.name_fr || p.name_en || '').toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase()),
   )
 
-  const totalValue = safeProducts.reduce((sum, p) => sum + Number(p.price) * p.stock_quantity, 0)
-  const lowStockCount = safeProducts.filter((p) => p.stock_quantity <= 10 && p.stock_quantity > 0).length
-  const outOfStockCount = safeProducts.filter((p) => p.stock_quantity === 0).length
+  const totalValue = safeProducts.reduce((sum, p) => sum + Number(p.selling_price_xof || 0) * (p.current_stock || 0), 0)
+  const lowStockCount = safeProducts.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 0) && (p.current_stock || 0) > 0).length
+  const outOfStockCount = safeProducts.filter((p) => (p.current_stock || 0) === 0).length
 
   return (
     <div className="space-y-6">
@@ -99,17 +99,17 @@ export function StockOverview({ products }: StockOverviewProps) {
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredProducts.map((product) => {
-          const stockPercent = Math.min(100, (product.stock_quantity / (product.min_stock_level * 3)) * 100)
-          const isLow = product.stock_quantity <= product.min_stock_level
-          const isOut = product.stock_quantity === 0
+          const stockPercent = Math.min(100, ((product.current_stock || 0) / ((product.min_stock_level || 1) * 3)) * 100)
+          const isLow = (product.current_stock || 0) <= (product.min_stock_level || 0)
+          const isOut = (product.current_stock || 0) === 0
 
           return (
             <Card key={product.id} className="border-border">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
+                    <p className="font-medium">{product.name_fr || product.name_en}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{product.code}</p>
                   </div>
                   {isOut ? (
                     <Badge variant="destructive">Rupture</Badge>
@@ -123,15 +123,15 @@ export function StockOverview({ products }: StockOverviewProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Quantité</span>
-                    <span className="font-semibold">{product.stock_quantity} unités</span>
+                    <span className="font-semibold">{product.current_stock || 0} unités</span>
                   </div>
                   <Progress
                     value={stockPercent}
                     className={`h-2 ${isOut ? "[&>div]:bg-destructive" : isLow ? "[&>div]:bg-warning" : ""}`}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Seuil: {product.min_stock_level}</span>
-                    <span>{product.product_categories?.name || "Non catégorisé"}</span>
+                    <span>Seuil: {product.min_stock_level || 0}</span>
+                    <span>{product.category?.name_fr || "Non catégorisé"}</span>
                   </div>
                 </div>
               </CardContent>

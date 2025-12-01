@@ -39,34 +39,29 @@ export function POSInterface({ products, categories, currencies, paymentMethods 
       : { code: "XOF", name: "Franc CFA", symbol: "XOF" }
   )
 
-  const filteredProducts = useMemo(() => {
-    if (!Array.isArray(products)) return []
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.barcode?.includes(searchQuery)
-      const matchesCategory = !selectedCategory || product.category_id === selectedCategory
-      return matchesSearch && matchesCategory
-    })
-  }, [products, searchQuery, selectedCategory])
+  const filteredProducts = Array.isArray(products) ? products : []
 
   const addToCart = (product: any) => {
+    if (!product || !product.id) return
+    
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id)
+      if (!Array.isArray(prev)) return []
+      
+      const existing = prev.find((item) => item && item.product && item.product.id === product.id)
       if (existing) {
-        if (existing.quantity >= product.stock_quantity) {
-          return prev // Can't add more than stock
-        }
-        return prev.map((item) => (item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
+        return prev.map((item) => 
+          item && item.product && item.product.id === product.id 
+            ? { ...item, quantity: (item.quantity || 0) + 1 } 
+            : item
+        )
       }
       return [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: Date.now().toString(),
           product,
           quantity: 1,
-          unit_price: Number(product.price),
+          unit_price: Number(product.selling_price_xof || 0),
           discount_percent: 0,
         },
       ]

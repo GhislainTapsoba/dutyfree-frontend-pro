@@ -1,53 +1,60 @@
 "use client"
-
-import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { authService } from "@/lib/api/services/auth.service"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
-import { authService } from "@/lib/api"
-import { Loader2 } from "lucide-react"
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return
+    
     async function checkAuth() {
-      // Vérifier si l'utilisateur est authentifié
       if (!authService.isAuthenticated()) {
-        router.push("/login")
+        router.push('/login')
         return
       }
-
+      
       try {
-        // Récupérer les informations de l'utilisateur
-        const response = await authService.getCurrentUser()
-        if (response.data) {
-          setUser(response.data)
+        const token = authService.debugAuth()
+        console.log('[ClientLayout] Debug auth:', token)
+        
+        const userFromToken = authService.getUserFromToken()
+        console.log('[ClientLayout] User from token:', userFromToken)
+        
+        if (userFromToken) {
+          setUser(userFromToken)
+          console.log('[ClientLayout] ✅ Connecté:', userFromToken.role_name || 'sans rôle')
         } else {
-          router.push("/login")
+          console.log('[ClientLayout] Pas d\'utilisateur trouvé, redirection login')
+          router.push('/login')
         }
       } catch (error) {
-        console.error("Erreur lors de la récupération de l'utilisateur:", error)
-        router.push("/login")
+        console.error('[ClientLayout] Erreur:', error)
+        router.push('/login')
       } finally {
         setLoading(false)
       }
     }
-
     checkAuth()
-  }, [router])
+  }, [router, mounted])
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+          <span>Chargement...</span>
+        </div>
       </div>
     )
   }

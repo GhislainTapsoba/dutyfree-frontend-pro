@@ -23,19 +23,22 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: product?.name || "",
+    code: product?.code || "",
+    name_fr: product?.name_fr || "",
     name_en: product?.name_en || "",
-    sku: product?.sku || "",
     barcode: product?.barcode || "",
-    description: product?.description || "",
+    description_fr: product?.description_fr || "",
+    description_en: product?.description_en || "",
     category_id: product?.category_id || "",
     supplier_id: product?.supplier_id || "",
-    price: product?.price || "",
-    price_eur: product?.price_eur || "",
-    price_usd: product?.price_usd || "",
-    cost_price: product?.cost_price || "",
-    stock_quantity: product?.stock_quantity || 0,
+    selling_price_xof: product?.selling_price_xof || "",
+    selling_price_eur: product?.selling_price_eur || "",
+    selling_price_usd: product?.selling_price_usd || "",
+    purchase_price: product?.purchase_price || "",
+    tax_rate: product?.tax_rate || 0,
+    initial_stock: 0,
     min_stock_level: product?.min_stock_level || 10,
+    max_stock_level: product?.max_stock_level || 100,
     is_active: product?.is_active ?? true,
   })
 
@@ -70,11 +73,11 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom (Français) *</Label>
+              <Label htmlFor="name_fr">Nom (Français) *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="name_fr"
+                value={formData.name_fr}
+                onChange={(e) => setFormData({ ...formData, name_fr: e.target.value })}
                 placeholder="Whisky Chivas 18 ans"
                 className="bg-secondary border-border"
                 required
@@ -94,11 +97,11 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="sku">SKU *</Label>
+              <Label htmlFor="code">Code produit *</Label>
               <Input
-                id="sku"
-                value={formData.sku}
-                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                id="code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                 placeholder="CHV-18-70CL"
                 className="bg-secondary border-border font-mono"
                 required
@@ -117,11 +120,11 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description_fr">Description (Français)</Label>
             <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              id="description_fr"
+              value={formData.description_fr}
+              onChange={(e) => setFormData({ ...formData, description_fr: e.target.value })}
               placeholder="Description du produit..."
               className="bg-secondary border-border min-h-[100px]"
             />
@@ -140,7 +143,7 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
                 <SelectContent>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {cat.name_fr}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -185,53 +188,67 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
         <CardContent className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Prix (XOF) *</Label>
+              <Label htmlFor="selling_price_xof">Prix (XOF) *</Label>
               <Input
-                id="price"
+                id="selling_price_xof"
                 type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                value={formData.selling_price_xof}
+                onChange={(e) => setFormData({ ...formData, selling_price_xof: e.target.value })}
                 placeholder="50000"
                 className="bg-secondary border-border"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price_eur">Prix (EUR)</Label>
+              <Label htmlFor="selling_price_eur">Prix (EUR)</Label>
               <Input
-                id="price_eur"
+                id="selling_price_eur"
                 type="number"
                 step="0.01"
-                value={formData.price_eur}
-                onChange={(e) => setFormData({ ...formData, price_eur: e.target.value })}
+                value={formData.selling_price_eur}
+                onChange={(e) => setFormData({ ...formData, selling_price_eur: e.target.value })}
                 placeholder="76.00"
                 className="bg-secondary border-border"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price_usd">Prix (USD)</Label>
+              <Label htmlFor="selling_price_usd">Prix (USD)</Label>
               <Input
-                id="price_usd"
+                id="selling_price_usd"
                 type="number"
                 step="0.01"
-                value={formData.price_usd}
-                onChange={(e) => setFormData({ ...formData, price_usd: e.target.value })}
+                value={formData.selling_price_usd}
+                onChange={(e) => setFormData({ ...formData, selling_price_usd: e.target.value })}
                 placeholder="82.00"
                 className="bg-secondary border-border"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cost_price">Prix d'achat (XOF)</Label>
-            <Input
-              id="cost_price"
-              type="number"
-              value={formData.cost_price}
-              onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-              placeholder="35000"
-              className="bg-secondary border-border"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="purchase_price">Prix d'achat (XOF)</Label>
+              <Input
+                id="purchase_price"
+                type="number"
+                value={formData.purchase_price}
+                onChange={(e) => setFormData({ ...formData, purchase_price: e.target.value })}
+                placeholder="35000"
+                className="bg-secondary border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tax_rate">Taux de TVA (%)</Label>
+              <Input
+                id="tax_rate"
+                type="number"
+                step="0.01"
+                value={formData.tax_rate}
+                onChange={(e) => setFormData({ ...formData, tax_rate: Number(e.target.value) })}
+                placeholder="18"
+                className="bg-secondary border-border"
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -241,24 +258,37 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
           <CardTitle className="text-lg">Stock</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="stock_quantity">Quantité en stock</Label>
+              <Label htmlFor="initial_stock">Stock initial</Label>
               <Input
-                id="stock_quantity"
+                id="initial_stock"
                 type="number"
-                value={formData.stock_quantity}
-                onChange={(e) => setFormData({ ...formData, stock_quantity: Number.parseInt(e.target.value) || 0 })}
+                value={formData.initial_stock}
+                onChange={(e) => setFormData({ ...formData, initial_stock: Number(e.target.value) || 0 })}
+                placeholder="0"
                 className="bg-secondary border-border"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="min_stock_level">Seuil d'alerte</Label>
+              <Label htmlFor="min_stock_level">Stock minimum</Label>
               <Input
                 id="min_stock_level"
                 type="number"
                 value={formData.min_stock_level}
-                onChange={(e) => setFormData({ ...formData, min_stock_level: Number.parseInt(e.target.value) || 10 })}
+                onChange={(e) => setFormData({ ...formData, min_stock_level: Number(e.target.value) || 10 })}
+                placeholder="10"
+                className="bg-secondary border-border"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="max_stock_level">Stock maximum</Label>
+              <Input
+                id="max_stock_level"
+                type="number"
+                value={formData.max_stock_level}
+                onChange={(e) => setFormData({ ...formData, max_stock_level: Number(e.target.value) || 100 })}
+                placeholder="100"
                 className="bg-secondary border-border"
               />
             </div>

@@ -14,6 +14,10 @@ interface UsersTableProps {
 }
 
 export function UsersTable({ users, roles }: UsersTableProps) {
+  // S'assurer que users est toujours un tableau
+  console.log('[UsersTable] users reçu:', users, 'Type:', typeof users, 'isArray:', Array.isArray(users))
+  const usersList = Array.isArray(users) ? users : []
+  console.log('[UsersTable] usersList:', usersList)
   const getRoleIcon = (roleName: string) => {
     switch (roleName?.toLowerCase()) {
       case "admin":
@@ -55,7 +59,7 @@ export function UsersTable({ users, roles }: UsersTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.length === 0 ? (
+          {usersList.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                 <User className="w-12 h-12 mx-auto mb-4" />
@@ -63,7 +67,7 @@ export function UsersTable({ users, roles }: UsersTableProps) {
               </TableCell>
             </TableRow>
           ) : (
-            users.map((user) => (
+            usersList.map((user) => (
               <TableRow key={user.id} className="border-border">
                 <TableCell>
                   <div className="flex items-center gap-3">

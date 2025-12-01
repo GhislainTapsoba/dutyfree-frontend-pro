@@ -25,7 +25,7 @@ export function SalesChart() {
         const response = await reportsService.getSalesReport({
           start_date: startDate.toISOString().split("T")[0],
           end_date: endDate.toISOString().split("T")[0],
-          group_by: "day",
+          period: "daily",
         })
 
         if (response.data && Array.isArray(response.data)) {

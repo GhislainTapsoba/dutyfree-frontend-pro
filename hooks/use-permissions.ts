@@ -20,20 +20,18 @@ export function usePermissions() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = () => {
       try {
-        const res = await authService.getCurrentUser()
-
-        if (res.error || !res.data) {
-          console.warn("AUTH ERROR:", res.error)
+        const userFromToken = authService.getUserFromToken()
+        
+        if (userFromToken) {
+          setUser(userFromToken)
+          setRoleCode(userFromToken.role_name || "guest")
+          console.log('🔍 Sidebar Debug - Role:', userFromToken.role_name, 'Loading:', false)
+        } else {
           setRoleCode("guest")
-          return
+          console.log('🔍 Sidebar Debug - Role: guest Loading:', false)
         }
-
-        const data = res.data
-        setUser(data)
-        setRoleCode(data.role_name || "guest")
-
       } catch (error) {
         console.error("Error fetching user:", error)
         setRoleCode("guest")
