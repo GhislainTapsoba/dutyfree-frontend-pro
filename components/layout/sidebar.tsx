@@ -56,7 +56,7 @@ const menuItems: { title: string; items: MenuItem[] }[] = [
   {
     title: "Gestion",
     items: [
-      {name: "Catégories", href: "/dashboard/categories", icon: Tag, permission: "categories.view" },
+      { name: "Catégories", href: "/dashboard/categories", icon: Tag, permission: "categories.view" },
       { name: "Produits", href: "/dashboard/products", icon: Package, permission: "products.view" },
       { name: "Fiches techniques", href: "/dashboard/technical-sheets", icon: FileCheck, permission: "technical_sheets.view" },
       { name: "Stock", href: "/dashboard/stock", icon: Boxes, permission: "stock.view" },

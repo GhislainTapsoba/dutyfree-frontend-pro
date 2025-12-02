@@ -4,7 +4,14 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Eye, Truck, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { Plus, Loader2, Eye, Truck, CheckCircle2, XCircle, Clock, MoreVertical, Edit, Trash2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 import Link from "next/link"
 import {
   Table,
@@ -26,7 +33,7 @@ interface PurchaseOrder {
   status: "draft" | "sent" | "partial" | "received" | "cancelled"
   subtotal: number
   approach_costs: number
-  total_amount: number
+  total: number
   notes: string | null
   created_at: string
   supplier?: {
@@ -40,21 +47,39 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      try {
-        const response = await fetch("http://localhost:3001/api/purchase-orders")
-        const data = await response.json()
-        if (data.data) setOrders(data.data)
-      } catch (error) {
-        console.error("Erreur lors du chargement des bons de commande:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadData()
   }, [])
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const response = await fetch("http://localhost:3001/api/purchase-orders")
+      const data = await response.json()
+      if (data.data) setOrders(data.data)
+    } catch (error) {
+      console.error("Erreur lors du chargement des bons de commande:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce bon de commande ?")) return
+    try {
+      const response = await fetch(`http://localhost:3001/api/purchase-orders/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        toast.success("Bon de commande supprimé")
+        loadData()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression")
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -143,20 +168,40 @@ export default function PurchaseOrdersPage() {
                   </TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell className="text-right font-medium">
-                    {order.subtotal.toLocaleString("fr-FR")} FCFA
+                    {(order.subtotal || 0).toLocaleString("fr-FR")} FCFA
                   </TableCell>
                   <TableCell className="text-right text-muted-foreground">
-                    {order.approach_costs.toLocaleString("fr-FR")} FCFA
+                    {(order.approach_costs || 0).toLocaleString("fr-FR")} FCFA
                   </TableCell>
                   <TableCell className="text-right font-bold">
-                    {order.total_amount.toLocaleString("fr-FR")} FCFA
+                    {(order.total || 0).toLocaleString("fr-FR")} FCFA
                   </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/dashboard/purchase-orders/${order.id}`}>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/purchase-orders/${order.id}`} className="flex items-center cursor-pointer">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Voir détails
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/purchase-orders/${order.id}/edit`} className="flex items-center cursor-pointer">
+                            <Edit className="w-4 h-4 mr-2" />
+                            Modifier
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(order.id)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

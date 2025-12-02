@@ -54,7 +54,7 @@ export function ProductFilters({ categories }: ProductFiltersProps) {
           <SelectItem value="all">Toutes</SelectItem>
           {Array.isArray(categories) && categories.map((cat) => (
             <SelectItem key={cat.id} value={cat.id}>
-              {cat.name}
+              {cat.name_fr || cat.name}
             </SelectItem>
           ))}
         </SelectContent>

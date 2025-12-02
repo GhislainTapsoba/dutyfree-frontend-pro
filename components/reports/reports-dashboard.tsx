@@ -230,9 +230,14 @@ export function ReportsDashboard({
               <CardTitle className="text-lg">Évolution du chiffre d'affaires</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
+              <div className="h-[350px] min-h-[350px]">
+                {chartData.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Aucune donnée disponible pour la période sélectionnée
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -264,6 +269,7 @@ export function ReportsDashboard({
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -276,9 +282,14 @@ export function ReportsDashboard({
               <CardTitle className="text-lg">Top 10 produits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topProductsList} layout="vertical">
+              <div className="h-[400px] min-h-[400px]">
+                {topProductsList.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Aucune donnée disponible pour la période sélectionnée
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProductsList} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis
                       type="number"
@@ -305,6 +316,7 @@ export function ReportsDashboard({
                     <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -318,9 +330,14 @@ export function ReportsDashboard({
                 <CardTitle className="text-lg">Répartition par mode de paiement</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
+                <div className="h-[300px] min-h-[300px]">
+                  {pieData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      Aucune donnée disponible pour la période sélectionnée
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
                       <Pie
                         data={pieData}
                         cx="50%"
@@ -345,6 +362,7 @@ export function ReportsDashboard({
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -66,7 +66,7 @@ export function ProductsTable({ products, onProductDeleted }: ProductsTableProps
       <Table>
         <TableHeader>
           <TableRow className="border-border hover:bg-transparent">
-            <TableHead className="w-[80px]">Image</TableHead>
+            <TableHead className="w-[100px]">Image</TableHead>
             <TableHead>Produit</TableHead>
             <TableHead>SKU / Code-barres</TableHead>
             <TableHead>Catégorie</TableHead>
@@ -88,16 +88,30 @@ export function ProductsTable({ products, onProductDeleted }: ProductsTableProps
             safeProducts.map((product) => (
               <TableRow key={product.id} className="border-border">
                 <TableCell>
-                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                    {product.image_url ? (
+                      <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                    {product.image_url?.startsWith('http') ? (
                       <img
-                        src={product.image_url || "/placeholder.svg"}
+                        src={product.image_url}
                         alt={product.name_fr}
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <Package className="w-6 h-6 text-muted-foreground" />
-                    )}
+                    ) : product.image_url?.startsWith('data:') ? (
+                      <img
+                        src={product.image_url}
+                        alt={product.name_fr}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : product.image_url ? (
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/images/${product.image_url.split('/').pop()}`}
+                        alt={product.name_fr}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    ) : null}
+                    <Package className={`w-6 h-6 text-muted-foreground ${!product.image_url ? '' : 'hidden'}`} />
                   </div>
                 </TableCell>
                 <TableCell>

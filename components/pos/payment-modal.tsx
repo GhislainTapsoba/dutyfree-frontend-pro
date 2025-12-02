@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,6 +37,7 @@ export function PaymentModal({
   const [loading, setLoading] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [ticketNumber, setTicketNumber] = useState<string | null>(null)
+  const [saleData, setSaleData] = useState<any>(null)
   const [splitPayments, setSplitPayments] = useState<{ method: string; amount: number; currency: string }[]>([])
 
   const formatPrice = (price: number) => {
@@ -48,29 +49,35 @@ export function PaymentModal({
   const handlePayment = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/sales", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const response = await fetch(`${apiUrl}/sales`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({
+          lines: items.map((item) => ({
             product_id: item.product.id,
             quantity: item.quantity,
             unit_price: item.unit_price,
-            discount_percent: item.discount_percent,
+            discount_percentage: item.discount_percent,
+            discount_amount: 0,
           })),
-          total_amount: total,
-          currency: currency.code,
-          payment_method: selectedMethod,
-          passenger_info: passengerInfo,
-          amount_received: Number.parseFloat(amountReceived || "0"),
-          change_given: change,
+          currency_code: currency.code,
+          discount_amount: 0,
+          customer_name: passengerInfo?.name,
+          flight_reference: passengerInfo?.flight,
+          payments: [{
+            payment_method_id: null,
+            amount: selectedMethod === 'cash' ? Number.parseFloat(amountReceived || "0") : total,
+            currency_code: currency.code,
+          }],
         }),
       })
 
       if (!response.ok) throw new Error("Payment failed")
 
-      const data = await response.json()
-      setTicketNumber(data.ticket_number)
+      const result = await response.json()
+      setSaleData(result.data)
+      setTicketNumber(result.data?.ticket_number || 'N/A')
       setCompleted(true)
     } catch (error) {
       console.error("Payment error:", error)
@@ -93,33 +100,88 @@ export function PaymentModal({
     return (
       <Dialog open onOpenChange={onClose}>
         <DialogContent className="max-w-md">
-          <div className="flex flex-col items-center py-8 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-primary" />
-            </div>
-            <h2 className="text-2xl font-bold">Paiement réussi !</h2>
-            <p className="text-muted-foreground text-center">Ticket #{ticketNumber}</p>
-            <div className="text-3xl font-bold text-primary">
-              {formatPrice(total)} {currency.code}
-            </div>
-            {change > 0 && (
-              <div className="text-lg">
-                Monnaie à rendre:{" "}
-                <span className="font-bold text-warning">
-                  {formatPrice(change)} {currency.code}
-                </span>
+          <DialogDescription className="sr-only">Ticket de caisse</DialogDescription>
+          <div className="bg-white text-black p-6 rounded font-mono text-xs space-y-1">
+            {/* Header */}
+            <p className="text-center font-bold text-sm">DUTY FREE OUAGADOUGOU</p>
+            <p className="text-center text-[10px]">Aéroport International</p>
+            <p className="text-center text-[10px]">Ouagadougou, Burkina Faso</p>
+            <p className="text-center italic mt-2">Bienvenue</p>
+            
+            <hr className="border-dashed border-gray-400 my-2" />
+            
+            {/* Ticket Info */}
+            <p>Ticket: {ticketNumber}</p>
+            <p>Date: {new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+            {passengerInfo?.name && <p>Client: {passengerInfo.name}</p>}
+            {passengerInfo?.flight && <p>Vol: {passengerInfo.flight}</p>}
+            
+            <hr className="border-dashed border-gray-400 my-2" />
+            
+            {/* Items */}
+            {items.map((item, idx) => (
+              <div key={idx}>
+                <p>{item.product.name_fr}</p>
+                <p className="flex justify-between">
+                  <span>{item.quantity} x {formatPrice(item.unit_price)}</span>
+                  <span>{formatPrice(item.quantity * item.unit_price)} {currency.code}</span>
+                </p>
               </div>
+            ))}
+            
+            <hr className="border-dashed border-gray-400 my-2" />
+            
+            {/* Totals */}
+            <p className="flex justify-between">
+              <span>Sous-total:</span>
+              <span>{formatPrice(saleData?.subtotal || total)} {currency.code}</span>
+            </p>
+            {saleData?.tax_amount > 0 && (
+              <p className="flex justify-between">
+                <span>TVA:</span>
+                <span>{formatPrice(saleData.tax_amount)} {currency.code}</span>
+              </p>
             )}
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={handlePrint}>
-                <Printer className="w-4 h-4 mr-2" />
-                Imprimer
-              </Button>
-              <Button onClick={onComplete}>
-                <Receipt className="w-4 h-4 mr-2" />
-                Nouveau ticket
-              </Button>
+            <p className="flex justify-between font-bold text-sm">
+              <span>TOTAL:</span>
+              <span>{formatPrice(saleData?.total_ttc || total)} {currency.code}</span>
+            </p>
+            
+            <hr className="border-dashed border-gray-400 my-2" />
+            
+            {/* Payment */}
+            <p className="flex justify-between">
+              <span>Payé:</span>
+              <span>{formatPrice(selectedMethod === 'cash' ? Number.parseFloat(amountReceived || "0") : total)} {currency.code}</span>
+            </p>
+            {change > 0 && (
+              <p className="flex justify-between font-bold">
+                <span>Monnaie:</span>
+                <span>{formatPrice(change)} {currency.code}</span>
+              </p>
+            )}
+            
+            <hr className="border-dashed border-gray-400 my-2" />
+            
+            {/* Footer */}
+            <p className="text-center italic mt-2">Merci de votre visite</p>
+            <p className="text-center italic">Bon voyage !</p>
+            
+            <div className="flex items-center justify-center mt-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-3 mt-4">
+            <Button variant="outline" onClick={handlePrint} className="flex-1">
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimer
+            </Button>
+            <Button onClick={onComplete} className="flex-1">
+              <Receipt className="w-4 h-4 mr-2" />
+              Nouveau
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -131,6 +193,7 @@ export function PaymentModal({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Paiement</DialogTitle>
+          <DialogDescription>Sélectionnez le mode de paiement et validez la transaction</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

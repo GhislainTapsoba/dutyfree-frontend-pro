@@ -72,10 +72,14 @@ export default function NewPurchaseOrderPage() {
         const suppliersData = await suppliersRes.json()
         const productsData = await productsRes.json()
 
+        console.log("Suppliers loaded:", suppliersData.data?.length || 0)
+        console.log("Products loaded:", productsData.data?.length || 0)
+
         if (suppliersData.data) setSuppliers(suppliersData.data)
         if (productsData.data) setProducts(productsData.data)
       } catch (error) {
         console.error("Erreur:", error)
+        toast.error("Erreur lors du chargement des données")
       }
     }
     loadData()
@@ -259,14 +263,20 @@ export default function NewPurchaseOrderPage() {
                     onValueChange={(value) => handleLineChange(index, "product_id", value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner" />
+                      <SelectValue placeholder={products.length === 0 ? "Chargement..." : "Sélectionner un produit"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name_fr} ({product.code})
+                      {products.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          Aucun produit disponible
                         </SelectItem>
-                      ))}
+                      ) : (
+                        products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name_fr} ({product.code})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

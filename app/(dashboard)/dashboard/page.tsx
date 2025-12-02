@@ -49,7 +49,10 @@ export default function DashboardPage() {
         }
 
         if (stockRes.data && Array.isArray(stockRes.data)) {
-          setLowStockProducts(stockRes.data.slice(0, 5))
+          const uniqueProducts = stockRes.data.filter((p, index, self) => 
+            p && p.id && self.findIndex(t => t && t.id === p.id) === index
+          )
+          setLowStockProducts(uniqueProducts.slice(0, 5))
         } else {
           setLowStockProducts([])
         }

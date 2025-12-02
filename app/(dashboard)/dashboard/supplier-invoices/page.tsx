@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, FileText, Edit, CheckCircle, XCircle, AlertCircle, Clock } from "lucide-react"
+import { Plus, Loader2, FileText, Edit, CheckCircle, XCircle, AlertCircle, Clock, Eye, Trash2, MoreHorizontal } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -32,6 +32,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -65,7 +73,9 @@ export default function SupplierInvoicesPage() {
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editingInvoice, setEditingInvoice] = useState<SupplierInvoice | null>(null)
+  const [viewingInvoice, setViewingInvoice] = useState<SupplierInvoice | null>(null)
 
   const [formData, setFormData] = useState({
     supplier_id: "",
@@ -209,6 +219,34 @@ export default function SupplierInvoicesPage() {
     } catch (error) {
       console.error(error)
       toast.error("Erreur")
+    }
+  }
+
+  const handleView = (invoice: SupplierInvoice) => {
+    setViewingInvoice(invoice)
+    setViewDialogOpen(true)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette facture ?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/supplier-invoices/${id}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast.success("Facture supprimée")
+        loadData()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Erreur lors de la suppression")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Erreur lors de la suppression")
     }
   }
 
@@ -480,30 +518,50 @@ export default function SupplierInvoicesPage() {
                   </TableCell>
                   <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {invoice.status === "pending" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleValidate(invoice.id)}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Valider
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="w-4 h-4" />
                         </Button>
-                      )}
-                      {invoice.status === "validated" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleMarkAsPaid(invoice.id)}
-                        >
-                          Marquer payée
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(invoice)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem onClick={() => handleView(invoice)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Voir détails
+                        </DropdownMenuItem>
+
+                        {invoice.status === "pending" && (
+                          <>
+                            <DropdownMenuItem onClick={() => handleValidate(invoice.id)}>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Valider
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenDialog(invoice)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(invoice.id)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </>
+                        )}
+
+                        {invoice.status === "validated" && (
+                          <DropdownMenuItem onClick={() => handleMarkAsPaid(invoice.id)}>
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Marquer comme payée
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -511,6 +569,128 @@ export default function SupplierInvoicesPage() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialog de visualisation */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Détails de la facture</DialogTitle>
+            <DialogDescription>
+              Informations complètes de la facture fournisseur
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingInvoice && (
+            <div className="space-y-6">
+              {/* Informations générales */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">N° Facture</Label>
+                  <p className="font-mono font-semibold text-lg">{viewingInvoice.invoice_number}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Statut</Label>
+                  <div className="mt-1">{getStatusBadge(viewingInvoice.status)}</div>
+                </div>
+              </div>
+
+              {/* Fournisseur */}
+              <div>
+                <Label className="text-muted-foreground">Fournisseur</Label>
+                <p className="font-semibold text-lg">
+                  {viewingInvoice.supplier?.name}
+                  <span className="text-sm text-muted-foreground ml-2">
+                    ({viewingInvoice.supplier?.code})
+                  </span>
+                </p>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Date facture</Label>
+                  <p className="font-medium">
+                    {format(new Date(viewingInvoice.invoice_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Date échéance</Label>
+                  <p className="font-medium">
+                    {viewingInvoice.due_date
+                      ? format(new Date(viewingInvoice.due_date), "dd MMMM yyyy", { locale: fr })
+                      : "Non définie"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Montants */}
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Sous-total</span>
+                  <span className="font-medium">{viewingInvoice.subtotal.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxes</span>
+                  <span className="font-medium">{viewingInvoice.tax_amount.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+                {viewingInvoice.discount_amount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Remise</span>
+                    <span className="font-medium">- {viewingInvoice.discount_amount.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                )}
+                {viewingInvoice.other_charges > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Autres frais</span>
+                    <span className="font-medium">{viewingInvoice.other_charges.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                )}
+                <div className="border-t pt-3 flex justify-between items-center">
+                  <span className="font-bold text-lg">Total TTC</span>
+                  <span className="font-bold text-2xl">{viewingInvoice.total.toLocaleString("fr-FR")} FCFA</span>
+                </div>
+              </div>
+
+              {/* Bon de commande */}
+              {viewingInvoice.purchase_order && (
+                <div>
+                  <Label className="text-muted-foreground">Bon de commande associé</Label>
+                  <p className="font-medium">{viewingInvoice.purchase_order.order_number}</p>
+                </div>
+              )}
+
+              {/* Notes */}
+              {viewingInvoice.notes && (
+                <div>
+                  <Label className="text-muted-foreground">Notes</Label>
+                  <p className="text-sm mt-1 p-3 bg-muted rounded-md">{viewingInvoice.notes}</p>
+                </div>
+              )}
+
+              {/* Informations de paiement */}
+              {viewingInvoice.payment_date && (
+                <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950">
+                  <Label className="text-muted-foreground">Payée le</Label>
+                  <p className="font-medium">
+                    {format(new Date(viewingInvoice.payment_date), "dd MMMM yyyy à HH:mm", { locale: fr })}
+                  </p>
+                  {viewingInvoice.payment_method && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Méthode: {viewingInvoice.payment_method}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

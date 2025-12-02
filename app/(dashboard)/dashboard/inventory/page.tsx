@@ -4,7 +4,13 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, ClipboardList, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react"
+import { Plus, Loader2, ClipboardList, TrendingUp, TrendingDown, AlertTriangle, MoreVertical, Eye, Edit, Trash2 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -39,11 +45,12 @@ import Link from "next/link"
 
 interface Inventory {
   id: string
-  inventory_number: string
+  code: string
   point_of_sale_id: string | null
-  start_date: string
-  end_date: string | null
-  status: "in_progress" | "completed" | "validated"
+  inventory_date: string
+  started_at: string | null
+  completed_at: string | null
+  status: "draft" | "in_progress" | "completed" | "validated"
   total_items_counted: number
   total_variance_value: number
   notes: string | null
@@ -81,7 +88,7 @@ export default function InventoryPage() {
     loadInventories()
   }, [])
 
-  const loadInventories = async () => {
+  async function loadInventories() {
     setLoading(true)
     try {
       const response = await fetch("http://localhost:3001/api/stock/inventory")
@@ -107,6 +114,43 @@ export default function InventoryPage() {
       toast.error("Erreur lors du chargement")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Supprimer cet inventaire ?")) return
+    try {
+      const response = await fetch(`http://localhost:3001/api/stock/inventory/${id}`, {
+        method: "DELETE",
+      })
+      if (response.ok) {
+        toast.success("Inventaire supprimé")
+        loadInventories()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression")
+    }
+  }
+
+  async function handleChangeStatus(id: string, newStatus: string) {
+    try {
+      const response = await fetch(`http://localhost:3001/api/stock/inventory/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      if (response.ok) {
+        toast.success("Statut modifié")
+        loadInventories()
+      } else {
+        const data = await response.json()
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la modification")
     }
   }
 
@@ -137,11 +181,12 @@ export default function InventoryPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
+      draft: { label: "Brouillon", variant: "outline" as const },
       in_progress: { label: "En cours", variant: "default" as const },
       completed: { label: "Terminé", variant: "outline" as const },
       validated: { label: "Validé", variant: "default" as const },
     }
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_progress
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
@@ -322,37 +367,75 @@ export default function InventoryPage() {
               inventories.map((inventory) => (
                 <TableRow key={inventory.id}>
                   <TableCell className="font-mono font-semibold">
-                    {inventory.inventory_number}
+                    {inventory.code}
                   </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">{inventory.point_of_sale?.name || "Tous"}</div>
                       <div className="text-xs text-muted-foreground">
-                        {inventory.point_of_sale?.code}
+                        {inventory.point_of_sale?.code || "-"}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">
-                    {format(new Date(inventory.start_date), "dd MMM yyyy HH:mm", { locale: fr })}
+                    {inventory.started_at
+                      ? format(new Date(inventory.started_at), "dd MMM yyyy HH:mm", { locale: fr })
+                      : format(new Date(inventory.inventory_date), "dd MMM yyyy", { locale: fr })}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {inventory.end_date
-                      ? format(new Date(inventory.end_date), "dd MMM yyyy HH:mm", { locale: fr })
+                    {inventory.completed_at
+                      ? format(new Date(inventory.completed_at), "dd MMM yyyy HH:mm", { locale: fr })
                       : "-"}
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {inventory.total_items_counted}
+                    {inventory.total_items_counted || 0}
                   </TableCell>
                   <TableCell className="text-right">
                     {getVarianceIndicator(inventory.total_variance_value || 0)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(inventory.status)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          {getStatusBadge(inventory.status)}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onClick={() => handleChangeStatus(inventory.id, "draft")}>
+                          Brouillon
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleChangeStatus(inventory.id, "in_progress")}>
+                          En cours
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleChangeStatus(inventory.id, "completed")}>
+                          Terminé
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleChangeStatus(inventory.id, "validated")}>
+                          Validé
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/dashboard/inventory/${inventory.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Voir détails
-                      </Button>
-                    </Link>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/inventory/${inventory.id}`} className="flex items-center cursor-pointer">
+                            <Eye className="w-4 h-4 mr-2" />
+                            Voir détails
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(inventory.id)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))

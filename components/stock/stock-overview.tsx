@@ -4,26 +4,86 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, Package, AlertTriangle, TrendingDown, Boxes } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Search, Package, AlertTriangle, TrendingDown, Boxes, Plus, Minus } from "lucide-react"
+import { toast } from "sonner"
 
 interface StockOverviewProps {
   products: any[]
+  onReload?: () => void
 }
 
-export function StockOverview({ products }: StockOverviewProps) {
+export function StockOverview({ products, onReload }: StockOverviewProps) {
   const [search, setSearch] = useState("")
+  const [adjustDialogOpen, setAdjustDialogOpen] = useState<string | null>(null)
+  const [adjustQuantity, setAdjustQuantity] = useState("")
+  const [adjustReason, setAdjustReason] = useState("")
+
+  async function handleAdjust(productId: string, quantity: number, currentQty: number = 0) {
+    const newQty = currentQty + quantity
+    
+    if (newQty > 100) {
+      toast.error("Stock maximum de 100 unités atteint")
+      return
+    }
+    
+    if (newQty < 0) {
+      toast.error("Stock ne peut pas être négatif")
+      return
+    }
+    
+    try {
+      const response = await fetch("http://localhost:3001/api/stock/adjust", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: productId, quantity, reason: adjustReason || "Ajustement rapide" }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("Stock ajusté")
+        setAdjustDialogOpen(null)
+        setAdjustQuantity("")
+        setAdjustReason("")
+        onReload?.()
+      } else {
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de l'ajustement")
+    }
+  }
 
   // Ensure products is always an array
   const safeProducts = Array.isArray(products) ? products : []
 
-  const filteredProducts = safeProducts.filter(
-    (p) => (p.name_fr || p.name_en || '').toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filteredProducts = safeProducts.filter((p) => {
+    const productData = p.product || p
+    const name = (productData.name_fr || productData.name_en || '').toLowerCase()
+    const code = (productData.code || '').toLowerCase()
+    const searchLower = search.toLowerCase()
+    return name.includes(searchLower) || code.includes(searchLower)
+  })
 
-  const totalValue = safeProducts.reduce((sum, p) => sum + Number(p.selling_price_xof || 0) * (p.current_stock || 0), 0)
-  const lowStockCount = safeProducts.filter((p) => (p.current_stock || 0) <= (p.min_stock_level || 0) && (p.current_stock || 0) > 0).length
-  const outOfStockCount = safeProducts.filter((p) => (p.current_stock || 0) === 0).length
+  const totalValue = safeProducts.reduce((sum, p) => {
+    const productData = p.product || p
+    const qty = p.total_quantity || p.current_stock || 0
+    const price = productData.selling_price_xof || 0
+    return sum + (price * qty)
+  }, 0)
+  
+  const lowStockCount = safeProducts.filter((p) => {
+    const qty = p.total_quantity || p.current_stock || 0
+    const minLevel = (p.product?.min_stock_level || p.min_stock_level || 5)
+    return qty > 0 && qty <= minLevel
+  }).length
+  
+  const outOfStockCount = safeProducts.filter((p) => {
+    const qty = p.total_quantity || p.current_stock || 0
+    return qty === 0
+  }).length
 
   return (
     <div className="space-y-6">
@@ -98,18 +158,21 @@ export function StockOverview({ products }: StockOverviewProps) {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProducts.map((product) => {
-          const stockPercent = Math.min(100, ((product.current_stock || 0) / ((product.min_stock_level || 1) * 3)) * 100)
-          const isLow = (product.current_stock || 0) <= (product.min_stock_level || 0)
-          const isOut = (product.current_stock || 0) === 0
+        {filteredProducts.map((product, index) => {
+          const productData = product.product || product
+          const qty = product.total_quantity || product.current_stock || 0
+          const minLevel = productData.min_stock_level || product.min_stock_level || 5
+          const stockPercent = Math.min(100, (qty / (minLevel * 3)) * 100)
+          const isLow = qty > 0 && qty <= minLevel
+          const isOut = qty === 0
 
           return (
-            <Card key={product.id} className="border-border">
+            <Card key={product.id || index} className="border-border">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="font-medium">{product.name_fr || product.name_en}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{product.code}</p>
+                    <p className="font-medium">{productData.name_fr || productData.name_en}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{productData.code}</p>
                   </div>
                   {isOut ? (
                     <Badge variant="destructive">Rupture</Badge>
@@ -123,16 +186,53 @@ export function StockOverview({ products }: StockOverviewProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Quantité</span>
-                    <span className="font-semibold">{product.current_stock || 0} unités</span>
+                    <span className="font-semibold">{qty} unités</span>
                   </div>
                   <Progress
                     value={stockPercent}
                     className={`h-2 ${isOut ? "[&>div]:bg-destructive" : isLow ? "[&>div]:bg-warning" : ""}`}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Seuil: {product.min_stock_level || 0}</span>
-                    <span>{product.category?.name_fr || "Non catégorisé"}</span>
+                    <span>Seuil: {minLevel}</span>
+                    <span>{productData.category?.name_fr || "Sans catégorie"}</span>
                   </div>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleAdjust(productData.id, 1, qty)} disabled={qty >= 100}>
+                    <Plus className="w-3 h-3 mr-1" />+1
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleAdjust(productData.id, 10, qty)} disabled={qty >= 100}>
+                    <Plus className="w-3 h-3 mr-1" />+10
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleAdjust(productData.id, -1, qty)} disabled={qty <= 0}>
+                    <Minus className="w-3 h-3 mr-1" />-1
+                  </Button>
+                  <Dialog open={adjustDialogOpen === productData.id} onOpenChange={(open) => setAdjustDialogOpen(open ? productData.id : null)}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="secondary" className="flex-1">Ajuster</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Ajuster le stock</DialogTitle>
+                        <DialogDescription>{productData.name_fr || productData.name_en}</DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4 py-4">
+                        <div>
+                          <Label>Quantité (+ pour ajout, - pour retrait)</Label>
+                          <Input type="number" value={adjustQuantity} onChange={(e) => setAdjustQuantity(e.target.value)} placeholder="Ex: +50 ou -10" />
+                        </div>
+                        <div>
+                          <Label>Raison</Label>
+                          <Input value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} placeholder="Raison de l'ajustement" />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setAdjustDialogOpen(null)}>Annuler</Button>
+                        <Button onClick={() => handleAdjust(productData.id, Number(adjustQuantity), qty)} disabled={!adjustQuantity}>Confirmer</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </CardContent>
             </Card>

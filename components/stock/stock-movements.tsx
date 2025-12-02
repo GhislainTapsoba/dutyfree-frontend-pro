@@ -2,14 +2,15 @@
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowUpCircle, ArrowDownCircle, RotateCcw, Package } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ArrowUpCircle, ArrowDownCircle, RotateCcw, Package, RefreshCw } from "lucide-react"
 
 interface StockMovementsProps {
   movements: any[]
+  onReload?: () => void
 }
 
-export function StockMovements({ movements }: StockMovementsProps) {
-  // Ensure movements is always an array
+export function StockMovements({ movements, onReload }: StockMovementsProps) {
   const safeMovements = Array.isArray(movements) ? movements : []
 
   const getMovementIcon = (type: string) => {
@@ -42,8 +43,11 @@ export function StockMovements({ movements }: StockMovementsProps) {
 
   return (
     <Card className="border-border">
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border flex items-center justify-between">
         <h3 className="font-semibold">Historique des mouvements</h3>
+        <Button size="sm" variant="outline" onClick={onReload}>
+          <RefreshCw className="w-4 h-4 mr-2" />Actualiser
+        </Button>
       </div>
       <div className="divide-y divide-border">
         {safeMovements.length === 0 ? (

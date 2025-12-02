@@ -27,10 +27,27 @@ export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [viewingCategory, setViewingCategory] = useState<Category | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name_fr: '',
-    name_en: ''
+    name_en: '',
+    sort_order: 0,
+    image_url: ''
   })
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        setFormData({...formData, image_url: base64})
+        setImagePreview(base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   useEffect(() => {
     loadCategories()
@@ -52,6 +69,7 @@ export default function CategoriesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
     
     try {
       const url = editingCategory 
@@ -70,9 +88,13 @@ export default function CategoriesPage() {
         loadCategories()
         setIsDialogOpen(false)
         resetForm()
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Erreur lors de la sauvegarde')
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error)
+      setError('Erreur lors de la sauvegarde')
     }
   }
 
@@ -81,8 +103,11 @@ export default function CategoriesPage() {
     setEditingCategory(category)
     setFormData({
       name_fr: category.name_fr,
-      name_en: category.name_en
+      name_en: category.name_en,
+      sort_order: category.sort_order,
+      image_url: category.image_url || ''
     })
+    setImagePreview(category.image_url || null)
     setIsDialogOpen(true)
   }
 
@@ -104,8 +129,10 @@ export default function CategoriesPage() {
   }
 
   const resetForm = () => {
-    setFormData({ name_fr: '', name_en: '' })
+    setFormData({ name_fr: '', name_en: '', sort_order: 0, image_url: '' })
     setEditingCategory(null)
+    setError(null)
+    setImagePreview(null)
   }
 
   const handleView = (category: Category) => {
@@ -141,6 +168,11 @@ export default function CategoriesPage() {
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                  {error}
+                </div>
+              )}
               <div>
                 <Label>Nom (Français)</Label>
                 <Input
@@ -156,6 +188,44 @@ export default function CategoriesPage() {
                   onChange={(e) => setFormData({...formData, name_en: e.target.value})}
                   required
                 />
+              </div>
+              <div>
+                <Label>Ordre de tri</Label>
+                <Input
+                  type="number"
+                  value={formData.sort_order}
+                  onChange={(e) => setFormData({...formData, sort_order: Number(e.target.value)})}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Image de la catégorie</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Ou entrez une URL:</p>
+                <Input
+                  value={formData.image_url.startsWith('data:') ? '' : formData.image_url}
+                  onChange={(e) => {
+                    setFormData({...formData, image_url: e.target.value})
+                    setImagePreview(e.target.value)
+                  }}
+                  placeholder="https://..."
+                />
+                {imagePreview && (
+                  <div className="mt-2">
+                    <img
+                      src={imagePreview}
+                      alt="Prévisualisation"
+                      className="w-32 h-32 object-cover rounded-lg border"
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -178,9 +248,11 @@ export default function CategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[80px]">Image</TableHead>
                 <TableHead>Code</TableHead>
                 <TableHead>Nom (FR)</TableHead>
                 <TableHead>Nom (EN)</TableHead>
+                <TableHead>Ordre</TableHead>
                 <TableHead>Statut</TableHead>
                 <TableHead>Date de création</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -189,9 +261,31 @@ export default function CategoriesPage() {
             <TableBody>
               {categories.map((category) => (
                 <TableRow key={category.id}>
+                  <TableCell>
+                    <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                      {category.image_url?.startsWith('http') ? (
+                        <img
+                          src={category.image_url}
+                          alt={category.name_fr}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : category.image_url ? (
+                        <img
+                          src={`http://localhost:3001/api/images/${category.image_url.split('/').pop()}`}
+                          alt={category.name_fr}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {category.name_fr?.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="font-mono text-sm">{category.code}</TableCell>
                   <TableCell className="font-medium">{category.name_fr}</TableCell>
                   <TableCell>{category.name_en}</TableCell>
+                  <TableCell className="font-mono text-sm">{category.sort_order}</TableCell>
                   <TableCell>
                     <Badge variant={category.is_active ? "default" : "secondary"}>
                       {category.is_active ? "Actif" : "Inactif"}
@@ -233,36 +327,63 @@ export default function CategoriesPage() {
       {/* Modal de détails */}
       {viewingCategory && (
         <Dialog open={!!viewingCategory} onOpenChange={() => setViewingCategory(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Détails de la catégorie</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label>Code</Label>
-                <p className="font-mono text-sm bg-gray-100 p-2 rounded">{viewingCategory.code}</p>
+              {/* Image */}
+              {viewingCategory.image_url && (
+                <div className="w-full h-48 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+                  {viewingCategory.image_url.startsWith('http') ? (
+                    <img
+                      src={viewingCategory.image_url}
+                      alt={viewingCategory.name_fr}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <img
+                      src={`http://localhost:3001/api/images/${viewingCategory.image_url.split('/').pop()}`}
+                      alt={viewingCategory.name_fr}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Code</Label>
+                  <p className="font-mono text-sm bg-secondary p-2 rounded">{viewingCategory.code}</p>
+                </div>
+                <div>
+                  <Label>Ordre de tri</Label>
+                  <p className="font-mono text-sm bg-secondary p-2 rounded">{viewingCategory.sort_order}</p>
+                </div>
               </div>
+              
               <div>
                 <Label>Nom (Français)</Label>
-                <p className="p-2">{viewingCategory.name_fr}</p>
+                <p className="p-2 bg-secondary rounded">{viewingCategory.name_fr}</p>
               </div>
               <div>
                 <Label>Nom (Anglais)</Label>
-                <p className="p-2">{viewingCategory.name_en}</p>
+                <p className="p-2 bg-secondary rounded">{viewingCategory.name_en}</p>
               </div>
-              <div>
-                <Label>Ordre de tri</Label>
-                <p className="p-2">{viewingCategory.sort_order}</p>
-              </div>
-              <div>
-                <Label>Statut</Label>
-                <Badge variant={viewingCategory.is_active ? "default" : "secondary"}>
-                  {viewingCategory.is_active ? "Actif" : "Inactif"}
-                </Badge>
-              </div>
-              <div>
-                <Label>Date de création</Label>
-                <p className="p-2">{new Date(viewingCategory.created_at).toLocaleString('fr-FR')}</p>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Statut</Label>
+                  <div className="mt-2">
+                    <Badge variant={viewingCategory.is_active ? "default" : "secondary"}>
+                      {viewingCategory.is_active ? "Actif" : "Inactif"}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label>Date de création</Label>
+                  <p className="text-sm text-muted-foreground mt-2">{new Date(viewingCategory.created_at).toLocaleString('fr-FR')}</p>
+                </div>
               </div>
             </div>
             <div className="flex justify-end">

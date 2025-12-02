@@ -39,6 +39,9 @@ export function Cart({
   }
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+  const taxRate = 0.18 // 18% TVA Burkina Faso
+  const taxAmount = total * taxRate
+  const totalWithTax = total + taxAmount
 
   return (
     <div className="flex flex-col h-full">
@@ -190,19 +193,19 @@ export function Cart({
       <div className="p-4 border-t border-border space-y-4 bg-secondary/30">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Sous-total</span>
+            <span className="text-muted-foreground">Sous-total HT</span>
             <span>
               {formatPrice(total)} {currency?.code}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">TVA (0%)</span>
-            <span>0 {currency?.code}</span>
+            <span className="text-muted-foreground">TVA (18%)</span>
+            <span>{formatPrice(taxAmount)} {currency?.code}</span>
           </div>
           <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
-            <span>Total</span>
+            <span>Total TTC</span>
             <span className="text-primary">
-              {formatPrice(total)} {currency?.code}
+              {formatPrice(totalWithTax)} {currency?.code}
             </span>
           </div>
         </div>

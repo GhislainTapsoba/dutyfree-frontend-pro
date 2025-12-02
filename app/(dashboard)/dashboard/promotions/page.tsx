@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Edit, Trash2, Percent, Tag } from "lucide-react"
+import { Plus, Loader2, Edit, Trash2, Percent, Tag, MoreHorizontal, Eye } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -33,6 +33,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -48,7 +56,7 @@ interface Promotion {
   end_date: string
   min_purchase_amount: number | null
   max_discount_amount: number | null
-  applicable_to: "all" | "categories" | "products"
+  applicable_to: "all" | "category" | "product"
   is_active: boolean
   created_at: string
 }
@@ -57,7 +65,9 @@ export default function PromotionsPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
+  const [viewingPromotion, setViewingPromotion] = useState<Promotion | null>(null)
 
   const [formData, setFormData] = useState({
     code: "",
@@ -69,7 +79,7 @@ export default function PromotionsPage() {
     end_date: "",
     min_purchase_amount: 0,
     max_discount_amount: 0,
-    applicable_to: "all" as "all" | "categories" | "products",
+    applicable_to: "all" as "all" | "category" | "product",
     is_active: true,
   })
 
@@ -82,7 +92,25 @@ export default function PromotionsPage() {
     try {
       const response = await fetch("http://localhost:3001/api/promotions")
       const data = await response.json()
-      if (data.data) setPromotions(data.data)
+      if (data.data) {
+        // Mapper les données de l'API vers le format du frontend
+        const mappedPromotions = data.data.map((promo: any) => ({
+          id: promo.id,
+          code: promo.code,
+          name: promo.name,
+          description: promo.description,
+          type: promo.discount_type === 'fixed' ? 'fixed_amount' : promo.discount_type,
+          value: promo.discount_value,
+          start_date: promo.start_date,
+          end_date: promo.end_date,
+          min_purchase_amount: promo.min_purchase_amount,
+          max_discount_amount: promo.max_discount_amount,
+          applicable_to: promo.applicable_to,
+          is_active: promo.is_active,
+          created_at: promo.created_at,
+        }))
+        setPromotions(mappedPromotions)
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des promotions:", error)
       toast.error("Erreur lors du chargement")
@@ -139,10 +167,25 @@ export default function PromotionsPage() {
         ? `http://localhost:3001/api/promotions/${editingPromotion.id}`
         : "http://localhost:3001/api/promotions"
 
+      // Mapper les données du formulaire vers le format attendu par l'API
+      const payload = {
+        code: formData.code,
+        name: formData.name,
+        description: formData.description,
+        discount_type: formData.type === 'fixed_amount' ? 'fixed' : formData.type,
+        discount_value: formData.value,
+        min_purchase_amount: formData.min_purchase_amount,
+        max_discount_amount: formData.max_discount_amount,
+        applicable_to: formData.applicable_to,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        is_active: formData.is_active,
+      }
+
       const response = await fetch(url, {
         method: editingPromotion ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       })
 
       const data = await response.json()
@@ -158,6 +201,11 @@ export default function PromotionsPage() {
       console.error(error)
       toast.error("Erreur lors de l'enregistrement")
     }
+  }
+
+  const handleView = (promotion: Promotion) => {
+    setViewingPromotion(promotion)
+    setViewDialogOpen(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -190,10 +238,11 @@ export default function PromotionsPage() {
   }
 
   const getPromotionValue = (promotion: Promotion) => {
+    const value = promotion.value || 0
     if (promotion.type === "percentage") {
-      return `${promotion.value}%`
+      return `${value}%`
     }
-    return `${promotion.value.toLocaleString("fr-FR")} FCFA`
+    return `${value.toLocaleString("fr-FR")} FCFA`
   }
 
   const isPromotionActive = (promotion: Promotion) => {
@@ -322,8 +371,8 @@ export default function PromotionsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tous les produits</SelectItem>
-                        <SelectItem value="categories">Catégories spécifiques</SelectItem>
-                        <SelectItem value="products">Produits spécifiques</SelectItem>
+                        <SelectItem value="category">Catégorie spécifique</SelectItem>
+                        <SelectItem value="product">Produit spécifique</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -464,9 +513,9 @@ export default function PromotionsPage() {
                   <TableCell>
                     {promotion.applicable_to === "all"
                       ? "Tous"
-                      : promotion.applicable_to === "categories"
-                        ? "Catégories"
-                        : "Produits"}
+                      : promotion.applicable_to === "category"
+                        ? "Catégorie"
+                        : "Produit"}
                   </TableCell>
                   <TableCell>
                     <Badge variant={isPromotionActive(promotion) ? "default" : "secondary"}>
@@ -474,22 +523,37 @@ export default function PromotionsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleOpenDialog(promotion)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(promotion.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem onClick={() => handleView(promotion)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Voir détails
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => handleOpenDialog(promotion)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifier
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(promotion.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -497,6 +561,137 @@ export default function PromotionsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Dialog de visualisation */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Détails de la promotion</DialogTitle>
+            <DialogDescription>
+              Informations complètes de la promotion
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingPromotion && (
+            <div className="space-y-6">
+              {/* Informations générales */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Code</Label>
+                  <p className="font-mono font-semibold text-lg">{viewingPromotion.code}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Statut</Label>
+                  <div className="mt-1">
+                    <Badge variant={isPromotionActive(viewingPromotion) ? "default" : "secondary"}>
+                      {isPromotionActive(viewingPromotion) ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nom */}
+              <div>
+                <Label className="text-muted-foreground">Nom de la promotion</Label>
+                <p className="font-semibold text-lg">{viewingPromotion.name}</p>
+              </div>
+
+              {/* Description */}
+              {viewingPromotion.description && (
+                <div>
+                  <Label className="text-muted-foreground">Description</Label>
+                  <p className="text-sm mt-1 p-3 bg-muted rounded-md">{viewingPromotion.description}</p>
+                </div>
+              )}
+
+              {/* Type et valeur */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Type de réduction</Label>
+                  <p className="font-medium flex items-center gap-2">
+                    {viewingPromotion.type === "percentage" ? (
+                      <Percent className="w-4 h-4" />
+                    ) : (
+                      <Tag className="w-4 h-4" />
+                    )}
+                    {getPromotionTypeLabel(viewingPromotion.type)}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Valeur</Label>
+                  <p className="font-bold text-xl">{getPromotionValue(viewingPromotion)}</p>
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Date de début</Label>
+                  <p className="font-medium">
+                    {format(new Date(viewingPromotion.start_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Date de fin</Label>
+                  <p className="font-medium">
+                    {format(new Date(viewingPromotion.end_date), "dd MMMM yyyy", { locale: fr })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Conditions */}
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
+                <h3 className="font-semibold">Conditions d'application</h3>
+
+                {viewingPromotion.min_purchase_amount && viewingPromotion.min_purchase_amount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Achat minimum</span>
+                    <span className="font-medium">
+                      {viewingPromotion.min_purchase_amount.toLocaleString("fr-FR")} FCFA
+                    </span>
+                  </div>
+                )}
+
+                {viewingPromotion.max_discount_amount && viewingPromotion.max_discount_amount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Réduction maximale</span>
+                    <span className="font-medium">
+                      {viewingPromotion.max_discount_amount.toLocaleString("fr-FR")} FCFA
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Applicable à</span>
+                  <span className="font-medium">
+                    {viewingPromotion.applicable_to === "all"
+                      ? "Tous les produits"
+                      : viewingPromotion.applicable_to === "category"
+                        ? "Catégorie spécifique"
+                        : "Produit spécifique"}
+                  </span>
+                </div>
+
+                {(!viewingPromotion.min_purchase_amount || viewingPromotion.min_purchase_amount === 0) &&
+                 (!viewingPromotion.max_discount_amount || viewingPromotion.max_discount_amount === 0) && (
+                  <p className="text-sm text-muted-foreground italic">Aucune condition particulière</p>
+                )}
+              </div>
+
+              {/* Date de création */}
+              <div className="text-sm text-muted-foreground">
+                Créée le {format(new Date(viewingPromotion.created_at), "dd MMMM yyyy à HH:mm", { locale: fr })}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

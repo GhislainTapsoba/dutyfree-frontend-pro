@@ -18,9 +18,9 @@ export function StockAlerts({ products }: StockAlertsProps) {
           <p className="text-muted-foreground text-sm text-center py-8">Aucune alerte de stock</p>
         ) : (
           <div className="space-y-3">
-            {products.map((product) => (
+            {products.map((product, index) => (
               <div
-                key={product.id}
+                key={`${product.id}-${index}`}
                 className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20"
               >
                 <div className="flex items-center gap-3">
@@ -28,12 +28,12 @@ export function StockAlerts({ products }: StockAlertsProps) {
                     <Package className="w-5 h-5 text-destructive" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{product.name}</p>
-                    <p className="text-xs text-muted-foreground">{product.sku}</p>
+                    <p className="font-medium text-sm">{product.name_fr || product.name_en}</p>
+                    <p className="text-xs text-muted-foreground">{product.code}</p>
                   </div>
                 </div>
                 <Badge variant="destructive" className="font-mono">
-                  {product.stock_quantity} unités
+                  {product.current_stock || 0} unités
                 </Badge>
               </div>
             ))}

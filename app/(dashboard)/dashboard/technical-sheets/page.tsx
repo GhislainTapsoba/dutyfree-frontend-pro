@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Loader2, FileText, Edit, Trash2, Download } from "lucide-react"
+import { productsService } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -67,7 +68,9 @@ export default function TechnicalSheetsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
   const [editingSheet, setEditingSheet] = useState<TechnicalSheet | null>(null)
+  const [viewingSheet, setViewingSheet] = useState<TechnicalSheet | null>(null)
 
   const [formData, setFormData] = useState({
     product_id: "",
@@ -104,32 +107,37 @@ export default function TechnicalSheetsPage() {
   const loadData = async () => {
     setLoading(true)
     try {
-      console.log("Chargement des données...")
-      const [sheetsRes, productsRes] = await Promise.all([
-        fetch("/api/technical-sheets"),
-        fetch("/api/products"),
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      
+      const [productsRes, sheetsRes] = await Promise.all([
+        productsService.getProducts(),
+        fetch(`${apiUrl}/technical-sheets`).then(r => r.json())
       ])
 
-      console.log("Réponses reçues:", { sheetsStatus: sheetsRes.status, productsStatus: productsRes.status })
-
-      const sheetsData = await sheetsRes.json()
-      const productsData = await productsRes.json()
-
-      console.log("Données reçues:", { sheetsData, productsData })
-
-      if (sheetsData.data) setSheets(sheetsData.data)
-      if (Array.isArray(productsData)) {
-        console.log("Produits chargés (array):", productsData.length)
-        setProducts(productsData)
-      } else if (productsData.data) {
-        console.log("Produits chargés (data):", productsData.data.length)
-        setProducts(productsData.data)
+      if (productsRes.data && Array.isArray(productsRes.data)) {
+        setProducts(productsRes.data)
       } else {
-        console.log("Aucun produit trouvé")
+        setProducts([])
       }
+
+      if (sheetsRes.data && Array.isArray(sheetsRes.data)) {
+        // Mapper les données depuis specifications vers les champs attendus
+        const mappedSheets = sheetsRes.data.map((sheet: any) => ({
+          ...sheet,
+          sheet_code: sheet.sheet_code || 'N/A',
+          hs_code: sheet.customs_code,
+          country_of_origin: sheet.origin_country,
+          allergens: Array.isArray(sheet.allergens) ? sheet.allergens.join(', ') : sheet.allergens,
+          certifications: Array.isArray(sheet.certifications) ? sheet.certifications : [],
+        }))
+        setSheets(mappedSheets)
+      } else {
+        setSheets([])
+      }
+
     } catch (error) {
       console.error("Erreur lors du chargement:", error)
-      toast.error("Erreur lors du chargement")
+      toast.error("Erreur lors du chargement des produits")
     } finally {
       setLoading(false)
     }
@@ -207,9 +215,10 @@ export default function TechnicalSheetsPage() {
     }
 
     try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
       const url = editingSheet
-        ? `/api/technical-sheets/${editingSheet.id}`
-        : "/api/technical-sheets"
+        ? `${apiUrl}/technical-sheets/${editingSheet.id}`
+        : `${apiUrl}/technical-sheets`
 
       const response = await fetch(url, {
         method: editingSheet ? "PUT" : "POST",
@@ -232,11 +241,39 @@ export default function TechnicalSheetsPage() {
     }
   }
 
+  const handleView = (sheet: TechnicalSheet) => {
+    setViewingSheet(sheet)
+    setViewDialogOpen(true)
+  }
+
+  const handleDownload = (sheet: TechnicalSheet) => {
+    const content = `FICHE TECHNIQUE - ${sheet.sheet_code}
+
+Produit: ${sheet.product?.name_fr}
+Code: ${sheet.product?.code}
+
+Ingrédients: ${sheet.ingredients || '-'}
+Allergènes: ${sheet.allergens || '-'}
+Pays d'origine: ${sheet.country_of_origin || '-'}
+Poids net: ${sheet.net_weight ? sheet.net_weight + 'g' : '-'}
+Code douanier: ${sheet.hs_code || '-'}
+`
+    const blob = new Blob([content], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `fiche-technique-${sheet.sheet_code}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Fiche technique téléchargée')
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette fiche technique ?")) return
 
     try {
-      const response = await fetch(`/api/technical-sheets/${id}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const response = await fetch(`${apiUrl}/technical-sheets/${id}`, {
         method: "DELETE",
       })
 
@@ -256,9 +293,12 @@ export default function TechnicalSheetsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="ml-4">Chargement des produits...</p>
       </div>
     )
   }
+
+  console.log('Render - Products:', products.length, 'Sheets:', sheets.length)
 
   return (
     <div className="space-y-6">
@@ -266,7 +306,7 @@ export default function TechnicalSheetsPage() {
         <div>
           <h1 className="text-2xl font-bold">Fiches Techniques</h1>
           <p className="text-muted-foreground">
-            Gestion des fiches techniques produits (ingrédients, allergènes, nutrition, certifications)
+            Gestion des fiches techniques produits ({products.length} produits disponibles)
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -302,11 +342,15 @@ export default function TechnicalSheetsPage() {
                           <SelectValue placeholder="Sélectionner un produit" />
                         </SelectTrigger>
                         <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name_fr} ({product.code})
-                            </SelectItem>
-                          ))}
+                          {products.length === 0 ? (
+                            <SelectItem value="none" disabled>Aucun produit disponible</SelectItem>
+                          ) : (
+                            products.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name_fr} ({product.code})
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -315,7 +359,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="sheet_code">Code fiche *</Label>
                       <Input
                         id="sheet_code"
-                        value={formData.sheet_code}
+                        value={formData.sheet_code || ""}
                         onChange={(e) => setFormData({ ...formData, sheet_code: e.target.value })}
                         placeholder="FT-001"
                         required
@@ -332,7 +376,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="ingredients">Ingrédients</Label>
                       <Textarea
                         id="ingredients"
-                        value={formData.ingredients}
+                        value={formData.ingredients || ""}
                         onChange={(e) => setFormData({ ...formData, ingredients: e.target.value })}
                         placeholder="Liste des ingrédients..."
                         rows={3}
@@ -343,7 +387,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="allergens">Allergènes</Label>
                       <Textarea
                         id="allergens"
-                        value={formData.allergens}
+                        value={formData.allergens || ""}
                         onChange={(e) => setFormData({ ...formData, allergens: e.target.value })}
                         placeholder="Contient: gluten, lactose..."
                         rows={2}
@@ -360,7 +404,7 @@ export default function TechnicalSheetsPage() {
                       <Label>Calories (kcal)</Label>
                       <Input
                         type="number"
-                        value={formData.nutritional_info.calories}
+                        value={formData.nutritional_info.calories || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -378,7 +422,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.nutritional_info.proteins}
+                        value={formData.nutritional_info.proteins || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -396,7 +440,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.nutritional_info.carbohydrates}
+                        value={formData.nutritional_info.carbohydrates || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -414,7 +458,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.nutritional_info.fats}
+                        value={formData.nutritional_info.fats || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -432,7 +476,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.nutritional_info.fiber}
+                        value={formData.nutritional_info.fiber || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -450,7 +494,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.nutritional_info.sodium}
+                        value={formData.nutritional_info.sodium || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -473,7 +517,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="country_of_origin">Pays d'origine</Label>
                       <Input
                         id="country_of_origin"
-                        value={formData.country_of_origin}
+                        value={formData.country_of_origin || ""}
                         onChange={(e) =>
                           setFormData({ ...formData, country_of_origin: e.target.value })
                         }
@@ -485,7 +529,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="hs_code">Code douanier (HS Code)</Label>
                       <Input
                         id="hs_code"
-                        value={formData.hs_code}
+                        value={formData.hs_code || ""}
                         onChange={(e) => setFormData({ ...formData, hs_code: e.target.value })}
                         placeholder="1234.56.78"
                       />
@@ -497,7 +541,7 @@ export default function TechnicalSheetsPage() {
                         id="net_weight"
                         type="number"
                         step="0.01"
-                        value={formData.net_weight}
+                        value={formData.net_weight || 0}
                         onChange={(e) =>
                           setFormData({ ...formData, net_weight: parseFloat(e.target.value) || 0 })
                         }
@@ -510,7 +554,7 @@ export default function TechnicalSheetsPage() {
                         id="gross_weight"
                         type="number"
                         step="0.01"
-                        value={formData.gross_weight}
+                        value={formData.gross_weight || 0}
                         onChange={(e) =>
                           setFormData({ ...formData, gross_weight: parseFloat(e.target.value) || 0 })
                         }
@@ -522,7 +566,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         id="shelf_life_days"
                         type="number"
-                        value={formData.shelf_life_days}
+                        value={formData.shelf_life_days || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -536,7 +580,7 @@ export default function TechnicalSheetsPage() {
                       <Label htmlFor="storage_conditions">Conditions de stockage</Label>
                       <Input
                         id="storage_conditions"
-                        value={formData.storage_conditions}
+                        value={formData.storage_conditions || ""}
                         onChange={(e) =>
                           setFormData({ ...formData, storage_conditions: e.target.value })
                         }
@@ -555,7 +599,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.dimensions.length}
+                        value={formData.dimensions.length || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -573,7 +617,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.dimensions.width}
+                        value={formData.dimensions.width || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -591,7 +635,7 @@ export default function TechnicalSheetsPage() {
                       <Input
                         type="number"
                         step="0.1"
-                        value={formData.dimensions.height}
+                        value={formData.dimensions.height || 0}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -644,12 +688,12 @@ export default function TechnicalSheetsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
+              <TableHead>Code fiche</TableHead>
               <TableHead>Produit</TableHead>
+              <TableHead>Code produit</TableHead>
               <TableHead>Origine</TableHead>
               <TableHead>Poids net</TableHead>
-              <TableHead>Allergènes</TableHead>
-              <TableHead>Code douanier</TableHead>
+              <TableHead>Code douanier (HS)</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -664,38 +708,50 @@ export default function TechnicalSheetsPage() {
             ) : (
               sheets.map((sheet) => (
                 <TableRow key={sheet.id}>
-                  <TableCell className="font-mono font-semibold">{sheet.sheet_code}</TableCell>
+                  <TableCell className="font-mono font-semibold text-primary">{sheet.sheet_code}</TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{sheet.product?.name_fr}</div>
-                      <div className="text-xs text-muted-foreground">{sheet.product?.code}</div>
-                    </div>
+                    <div className="font-medium">{sheet.product?.name_fr || '-'}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">{sheet.product?.code || '-'}</Badge>
                   </TableCell>
                   <TableCell>{sheet.country_of_origin || "-"}</TableCell>
                   <TableCell>{sheet.net_weight ? `${sheet.net_weight}g` : "-"}</TableCell>
                   <TableCell>
-                    {sheet.allergens ? (
-                      <Badge variant="destructive" className="text-xs">
-                        Allergènes
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <span className="font-mono text-sm font-semibold">{sheet.hs_code || "-"}</span>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{sheet.hs_code || "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleView(sheet)}
+                        title="Voir"
+                      >
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleOpenDialog(sheet)}
+                        title="Modifier"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(sheet.id)}>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDelete(sheet.id)}
+                        title="Supprimer"
+                      >
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => handleDownload(sheet)}
+                        title="Télécharger"
+                      >
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
@@ -706,6 +762,62 @@ export default function TechnicalSheetsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* Modal de visualisation */}
+      {viewingSheet && (
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Fiche Technique - {viewingSheet.sheet_code}</DialogTitle>
+              <DialogDescription>
+                {viewingSheet.product?.name_fr} ({viewingSheet.product?.code})
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Pays d'origine</Label>
+                  <p className="p-2 bg-secondary rounded">{viewingSheet.country_of_origin || viewingSheet.origin_country || '-'}</p>
+                </div>
+                <div>
+                  <Label>Code douanier (HS)</Label>
+                  <p className="p-2 bg-secondary rounded font-mono">{viewingSheet.hs_code || '-'}</p>
+                </div>
+                <div>
+                  <Label>Poids net</Label>
+                  <p className="p-2 bg-secondary rounded">{viewingSheet.net_weight ? `${viewingSheet.net_weight}g` : '-'}</p>
+                </div>
+                <div>
+                  <Label>Poids brut</Label>
+                  <p className="p-2 bg-secondary rounded">{viewingSheet.gross_weight ? `${viewingSheet.gross_weight}g` : '-'}</p>
+                </div>
+              </div>
+              {viewingSheet.ingredients && (
+                <div>
+                  <Label>Ingrédients</Label>
+                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.ingredients}</p>
+                </div>
+              )}
+              {viewingSheet.allergens && (
+                <div>
+                  <Label>Allergènes</Label>
+                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.allergens}</p>
+                </div>
+              )}
+              {viewingSheet.storage_conditions && (
+                <div>
+                  <Label>Conditions de stockage</Label>
+                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.storage_conditions}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Fermer</Button>
+              <Button onClick={() => handleDownload(viewingSheet)}>Télécharger</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

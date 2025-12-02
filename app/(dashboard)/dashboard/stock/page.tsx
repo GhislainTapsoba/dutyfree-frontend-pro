@@ -6,30 +6,50 @@ import { StockOverview } from "@/components/stock/stock-overview"
 import { StockMovements } from "@/components/stock/stock-movements"
 import { InventoryAlerts } from "@/components/stock/inventory-alerts"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Loader2, Plus, PackagePlus, ArrowRightLeft } from "lucide-react"
+import { toast } from "sonner"
 
 export default function StockPage() {
   const [stockData, setStockData] = useState<any[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [alerts, setAlerts] = useState<any[]>([])
   const [lots, setLots] = useState<Lot[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [lotDialogOpen, setLotDialogOpen] = useState(false)
+  const [movementDialogOpen, setMovementDialogOpen] = useState(false)
+  const [lotForm, setLotForm] = useState({ product_id: "", quantity: "", purchase_price: "", expiry_date: "" })
+  const [movementForm, setMovementForm] = useState({ product_id: "", movement_type: "adjustment", quantity: "", reason: "" })
 
   useEffect(() => {
-    async function loadData() {
-      setLoading(true)
-      try {
-        const [stockRes, movementsRes, lotsRes] = await Promise.all([
-          stockService.getStock(),
-          stockService.getMovements(),
-          stockService.getLots(),
-        ])
+    loadData()
+  }, [])
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const [stockRes, movementsRes, lotsRes, productsRes] = await Promise.all([
+        stockService.getStock(),
+        stockService.getMovements(),
+        stockService.getLots(),
+        productsService.getProducts(),
+      ])
 
         if (stockRes.data && Array.isArray(stockRes.data)) {
           setStockData(stockRes.data)
-          // Filtrer les alertes (produits avec stock faible)
-          const lowStock = stockRes.data.filter((item: any) => item.needs_reorder || item.quantity <= 10)
-          setAlerts(lowStock)
+          // Filtrer les alertes (produits avec stock faible ou en rupture)
+          const alerts = stockRes.data.filter((item: any) => {
+            const qty = item.total_quantity || 0
+            const minLevel = item.product?.min_stock_level || 5
+            return qty === 0 || qty <= minLevel
+          })
+          setAlerts(alerts)
         } else {
           setStockData([])
           setAlerts([])
@@ -46,15 +66,72 @@ export default function StockPage() {
         } else {
           setLots([])
         }
+
+        if (productsRes.data && Array.isArray(productsRes.data)) {
+          setProducts(productsRes.data)
+        } else {
+          setProducts([])
+        }
       } catch (error) {
         console.error("Erreur lors du chargement des données:", error)
       } finally {
         setLoading(false)
       }
-    }
+  }
 
-    loadData()
-  }, [])
+  async function handleCreateLot(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      const response = await fetch("http://localhost:3001/api/stock/lots", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: lotForm.product_id,
+          quantity: Number(lotForm.quantity),
+          purchase_price: Number(lotForm.purchase_price) || 0,
+          expiry_date: lotForm.expiry_date || null,
+        }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("Lot créé avec succès")
+        setLotDialogOpen(false)
+        setLotForm({ product_id: "", quantity: "", purchase_price: "", expiry_date: "" })
+        loadData()
+      } else {
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la création")
+    }
+  }
+
+  async function handleCreateMovement(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      const response = await fetch("http://localhost:3001/api/stock/movements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: movementForm.product_id,
+          movement_type: movementForm.movement_type,
+          quantity: Number(movementForm.quantity),
+          reason: movementForm.reason,
+        }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("Mouvement enregistré")
+        setMovementDialogOpen(false)
+        setMovementForm({ product_id: "", movement_type: "adjustment", quantity: "", reason: "" })
+        loadData()
+      } else {
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de l'enregistrement")
+    }
+  }
 
   if (loading) {
     return (
@@ -66,9 +143,103 @@ export default function StockPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Gestion du Stock</h1>
-        <p className="text-muted-foreground">Suivez les entrées, sorties et niveaux de stock</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Gestion du Stock</h1>
+          <p className="text-muted-foreground">Suivez les entrées, sorties et niveaux de stock</p>
+        </div>
+        <div className="flex gap-2">
+          <Dialog open={lotDialogOpen} onOpenChange={setLotDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><PackagePlus className="w-4 h-4 mr-2" />Nouveau lot</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleCreateLot}>
+                <DialogHeader>
+                  <DialogTitle>Créer un lot (Entrée de stock)</DialogTitle>
+                  <DialogDescription>Enregistrer une réception de marchandise</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div>
+                    <Label>Produit *</Label>
+                    <Select value={lotForm.product_id} onValueChange={(v) => setLotForm({...lotForm, product_id: v})}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name_fr || p.name_en}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Quantité *</Label>
+                    <Input type="number" min="1" max="100" value={lotForm.quantity} onChange={(e) => setLotForm({...lotForm, quantity: e.target.value})} required placeholder="Entre 1 et 100" />
+                    <p className="text-xs text-muted-foreground mt-1">La quantité doit être supérieure à 0 (max: 100)</p>
+                  </div>
+                  <div>
+                    <Label>Prix d'achat (XOF)</Label>
+                    <Input type="number" value={lotForm.purchase_price} onChange={(e) => setLotForm({...lotForm, purchase_price: e.target.value})} />
+                  </div>
+                  <div>
+                    <Label>Date d'expiration</Label>
+                    <Input type="date" value={lotForm.expiry_date} onChange={(e) => setLotForm({...lotForm, expiry_date: e.target.value})} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setLotDialogOpen(false)}>Annuler</Button>
+                  <Button type="submit">Créer</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={movementDialogOpen} onOpenChange={setMovementDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><ArrowRightLeft className="w-4 h-4 mr-2" />Mouvement</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleCreateMovement}>
+                <DialogHeader>
+                  <DialogTitle>Enregistrer un mouvement</DialogTitle>
+                  <DialogDescription>Ajustement, transfert, rebut, retour</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div>
+                    <Label>Produit *</Label>
+                    <Select value={movementForm.product_id} onValueChange={(v) => setMovementForm({...movementForm, product_id: v})}>
+                      <SelectTrigger><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                      <SelectContent>
+                        {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name_fr || p.name_en}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Type *</Label>
+                    <Select value={movementForm.movement_type} onValueChange={(v) => setMovementForm({...movementForm, movement_type: v})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="adjustment">Ajustement</SelectItem>
+                        <SelectItem value="transfer">Transfert</SelectItem>
+                        <SelectItem value="waste">Rebut</SelectItem>
+                        <SelectItem value="return">Retour</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Quantité * (+ pour ajout, - pour retrait)</Label>
+                    <Input type="number" value={movementForm.quantity} onChange={(e) => setMovementForm({...movementForm, quantity: e.target.value})} required />
+                  </div>
+                  <div>
+                    <Label>Raison</Label>
+                    <Textarea value={movementForm.reason} onChange={(e) => setMovementForm({...movementForm, reason: e.target.value})} rows={2} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setMovementDialogOpen(false)}>Annuler</Button>
+                  <Button type="submit">Enregistrer</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
@@ -80,11 +251,11 @@ export default function StockPage() {
         </TabsList>
 
         <TabsContent value="overview">
-          <StockOverview products={stockData || []} />
+          <StockOverview products={stockData || []} onReload={loadData} />
         </TabsContent>
 
         <TabsContent value="movements">
-          <StockMovements movements={movements || []} />
+          <StockMovements movements={movements || []} onReload={loadData} />
         </TabsContent>
 
         <TabsContent value="lots">
@@ -100,6 +271,50 @@ export default function StockPage() {
 }
 
 function LotsTable({ lots }: { lots: any[] }) {
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [selectedLot, setSelectedLot] = useState<any>(null)
+  const [editForm, setEditForm] = useState({ current_quantity: "", status: "" })
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault()
+    try {
+      const response = await fetch(`http://localhost:3001/api/stock/lots/${selectedLot.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          current_quantity: Number(editForm.current_quantity),
+          status: editForm.status,
+        }),
+      })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("Lot modifié")
+        setEditDialogOpen(false)
+        window.location.reload()
+      } else {
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la modification")
+    }
+  }
+
+  async function handleDelete(lotId: string) {
+    if (!confirm("Supprimer ce lot ?")) return
+    try {
+      const response = await fetch(`http://localhost:3001/api/stock/lots/${lotId}`, { method: "DELETE" })
+      const data = await response.json()
+      if (response.ok) {
+        toast.success("Lot supprimé")
+        window.location.reload()
+      } else {
+        toast.error(data.error || "Erreur")
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la suppression")
+    }
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card">
       <div className="p-4 border-b border-border">
@@ -115,29 +330,65 @@ function LotsTable({ lots }: { lots: any[] }) {
               <div key={lot.id} className="p-4 rounded-lg bg-secondary/50 border border-border">
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-mono font-semibold">{lot.lot_number}</span>
-                  <span
-                    className={`px-2 py-1 rounded text-xs ${
-                      lot.status === "active"
-                        ? "bg-primary/10 text-primary"
-                        : lot.status === "cleared"
-                          ? "bg-chart-2/10 text-chart-2"
-                          : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {lot.status === "active" ? "Actif" : lot.status === "cleared" ? "Apuré" : lot.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`px-2 py-1 rounded text-xs ${
+                        lot.status === "available"
+                          ? "bg-primary/10 text-primary"
+                          : lot.status === "depleted"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-chart-2/10 text-chart-2"
+                      }`}
+                    >
+                      {lot.status === "available" ? "Disponible" : lot.status === "depleted" ? "Épuisé" : lot.status}
+                    </span>
+                    <Button size="sm" variant="ghost" onClick={() => { setSelectedLot(lot); setEditForm({ current_quantity: lot.current_quantity, status: lot.status }); setEditDialogOpen(true); }}>Modifier</Button>
+                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(lot.id)}>Supprimer</Button>
+                  </div>
                 </div>
-                <p className="text-sm">{lot.products?.name}</p>
+                <p className="text-sm">{lot.product?.name_fr || lot.product?.name_en}</p>
                 <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
                   <span>Qté initiale: {lot.initial_quantity}</span>
-                  <span>Qté restante: {lot.remaining_quantity}</span>
-                  <span>Sommier: {lot.sommier_number || "-"}</span>
+                  <span>Qté actuelle: {lot.current_quantity}</span>
+                  <span>Reçu le: {lot.received_date}</span>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleEdit}>
+            <DialogHeader>
+              <DialogTitle>Modifier le lot</DialogTitle>
+              <DialogDescription>{selectedLot?.lot_number}</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div>
+                <Label>Quantité actuelle</Label>
+                <Input type="number" value={editForm.current_quantity} onChange={(e) => setEditForm({...editForm, current_quantity: e.target.value})} />
+              </div>
+              <div>
+                <Label>Statut</Label>
+                <Select value={editForm.status} onValueChange={(v) => setEditForm({...editForm, status: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Disponible</SelectItem>
+                    <SelectItem value="depleted">Épuisé</SelectItem>
+                    <SelectItem value="reserved">Réservé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>Annuler</Button>
+              <Button type="submit">Enregistrer</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

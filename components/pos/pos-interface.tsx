@@ -25,7 +25,12 @@ interface POSInterfaceProps {
   paymentMethods: any[]
 }
 
-export function POSInterface({ products, categories, currencies, paymentMethods }: POSInterfaceProps) {
+export function POSInterface({ products: productsProp, categories, currencies, paymentMethods }: POSInterfaceProps) {
+  const products = useMemo(() => {
+    if (!Array.isArray(productsProp)) return []
+    return productsProp.filter(p => p && typeof p === 'object')
+  }, [productsProp])
+
   const [cart, setCart] = useState<CartItem[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -39,7 +44,38 @@ export function POSInterface({ products, categories, currencies, paymentMethods 
       : { code: "XOF", name: "Franc CFA", symbol: "XOF" }
   )
 
-  const filteredProducts = Array.isArray(products) ? products : []
+  const filteredProducts = useMemo(() => {
+    try {
+      // Ensure we have a safe array to work with
+      const safeProducts = Array.isArray(products) ? [...products] : []
+      if (safeProducts.length === 0) return []
+
+      let result = safeProducts
+
+      // Apply category filter
+      if (selectedCategory) {
+        result = result.filter(p => p?.category_id === selectedCategory)
+      }
+
+      // Apply search filter
+      if (searchQuery) {
+        const q = String(searchQuery || "").toLowerCase()
+        if (q) {
+          result = result.filter(p => {
+            const n = String(p?.name || "").toLowerCase()
+            const b = String(p?.barcode || "").toLowerCase()
+            const s = String(p?.sku || "").toLowerCase()
+            return n.includes(q) || b.includes(q) || s.includes(q)
+          })
+        }
+      }
+
+      return result
+    } catch (error) {
+      console.error("Error filtering products:", error)
+      return []
+    }
+  }, [products, searchQuery, selectedCategory])
 
   const addToCart = (product: any) => {
     if (!product || !product.id) return
@@ -82,11 +118,13 @@ export function POSInterface({ products, categories, currencies, paymentMethods 
   }
 
   const cartTotal = useMemo(() => {
-    return cart.reduce((sum, item) => {
+    const subtotal = cart.reduce((sum, item) => {
       const itemTotal = item.unit_price * item.quantity
       const discount = (itemTotal * item.discount_percent) / 100
       return sum + (itemTotal - discount)
     }, 0)
+    // Ajouter la TVA de 18%
+    return subtotal * 1.18
   }, [cart])
 
   const handlePaymentComplete = () => {
