@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Store, Edit, MapPin } from "lucide-react"
+import { Plus, Loader2, Store, Edit, MapPin, Building2, CheckCircle2, XCircle } from "lucide-react"
+import { api } from "@/lib/api/client"
 import {
   Table,
   TableBody,
@@ -57,9 +58,12 @@ export default function PointOfSalesPage() {
   const loadPointsOfSale = async () => {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/point-of-sales")
-      const data = await response.json()
-      if (data.data) setPointsOfSale(data.data)
+      const response = await api.get("/point-of-sales")
+      if (response.data) {
+        setPointsOfSale(response.data)
+      } else if (response.error) {
+        toast.error(response.error)
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des points de vente:", error)
       toast.error("Erreur lors du chargement")
@@ -98,24 +102,16 @@ export default function PointOfSalesPage() {
     }
 
     try {
-      const url = editingPOS
-        ? `http://localhost:3001/api/point-of-sales/${editingPOS.id}`
-        : "http://localhost:3001/api/point-of-sales"
+      const response = editingPOS
+        ? await api.put(`/point-of-sales/${editingPOS.id}`, formData)
+        : await api.post("/point-of-sales", formData)
 
-      const response = await fetch(url, {
-        method: editingPOS ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.data) {
         toast.success(editingPOS ? "Point de vente modifié" : "Point de vente créé")
         setDialogOpen(false)
         loadPointsOfSale()
-      } else {
-        toast.error(data.error || "Erreur")
+      } else if (response.error) {
+        toast.error(response.error)
       }
     } catch (error) {
       console.error(error)
@@ -130,6 +126,9 @@ export default function PointOfSalesPage() {
       </div>
     )
   }
+
+  const activePOS = pointsOfSale.filter(p => p.is_active).length
+  const inactivePOS = pointsOfSale.filter(p => !p.is_active).length
 
   return (
     <div className="space-y-6">
@@ -211,6 +210,66 @@ export default function PointOfSalesPage() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Building2 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total points de vente</p>
+              <p className="text-3xl font-bold">{pointsOfSale.length}</p>
+              <p className="text-xs text-muted-foreground">Business units</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Actifs
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Points actifs</p>
+              <p className="text-3xl font-bold">{activePOS}</p>
+              <p className="text-xs text-muted-foreground">en opération</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <XCircle className="w-6 h-6 text-orange-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                Inactifs
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Points inactifs</p>
+              <p className="text-3xl font-bold">{inactivePOS}</p>
+              <p className="text-xs text-muted-foreground">hors service</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

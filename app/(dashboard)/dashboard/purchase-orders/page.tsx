@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { api } from "@/lib/api/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Eye, Truck, CheckCircle2, XCircle, Clock, MoreVertical, Edit, Trash2 } from "lucide-react"
+import { Plus, Loader2, Eye, Truck, CheckCircle2, XCircle, Clock, MoreVertical, Edit, Trash2, FileText, DollarSign, Package } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,11 +54,11 @@ export default function PurchaseOrdersPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/purchase-orders")
-      const data = await response.json()
-      if (data.data) setOrders(data.data)
+      const response = await api.get<PurchaseOrder[]>("/purchase-orders")
+      if (response.data) setOrders(response.data)
     } catch (error) {
       console.error("Erreur lors du chargement des bons de commande:", error)
+      toast.error("Erreur lors du chargement")
     } finally {
       setLoading(false)
     }
@@ -66,15 +67,12 @@ export default function PurchaseOrdersPage() {
   async function handleDelete(id: string) {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce bon de commande ?")) return
     try {
-      const response = await fetch(`http://localhost:3001/api/purchase-orders/${id}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
+      const response = await api.delete(`/purchase-orders/${id}`)
+      if (response.data || !response.error) {
         toast.success("Bon de commande supprimé")
         loadData()
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       toast.error("Erreur lors de la suppression")
@@ -109,6 +107,10 @@ export default function PurchaseOrdersPage() {
     )
   }
 
+  const sentOrders = orders.filter(o => o.status === 'sent').length
+  const receivedOrders = orders.filter(o => o.status === 'received').length
+  const totalAmount = orders.reduce((sum, o) => sum + (o.total || 0), 0)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -126,7 +128,90 @@ export default function PurchaseOrdersPage() {
         </Link>
       </div>
 
-      <Card>
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total commandes</p>
+              <p className="text-3xl font-bold">{orders.length}</p>
+              <p className="text-xs text-muted-foreground">bons créés</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Truck className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Envoyé
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Commandes envoyées</p>
+              <p className="text-3xl font-bold">{sentOrders}</p>
+              <p className="text-xs text-muted-foreground">en transit</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Package className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Reçu
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Commandes reçues</p>
+              <p className="text-3xl font-bold">{receivedOrders}</p>
+              <p className="text-xs text-muted-foreground">livrées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <DollarSign className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                Valeur
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Valeur totale</p>
+              <p className="text-3xl font-bold">{(totalAmount / 1000).toFixed(0)}K</p>
+              <p className="text-xs text-muted-foreground">FCFA de commandes</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="border-border/50 shadow-sm">
+        <div className="border-b bg-muted/30 px-6 py-4">
+          <h3 className="text-lg font-semibold">Liste des bons de commande</h3>
+          <p className="text-sm text-muted-foreground mt-1">Suivi de vos commandes fournisseurs</p>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

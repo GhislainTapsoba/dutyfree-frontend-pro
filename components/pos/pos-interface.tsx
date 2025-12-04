@@ -143,9 +143,9 @@ export function POSInterface({ products: productsProp, categories, currencies, p
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-4">
       {/* Left Panel - Products */}
-      <div className="flex-1 flex flex-col bg-card rounded-lg border border-border overflow-hidden">
-        {/* Search & Filters */}
-        <div className="p-4 border-b border-border space-y-4">
+      <div className="flex-1 flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
+        {/* Search & Filters avec gradient */}
+        <div className="relative p-4 border-b border-border space-y-4 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -153,11 +153,11 @@ export function POSInterface({ products: productsProp, categories, currencies, p
                 placeholder="Rechercher produit, code-barres..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                className="pl-10 bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-colors"
               />
             </div>
-            <Button variant="outline" size="icon">
-              <ScanBarcode className="w-4 h-4" />
+            <Button variant="outline" size="icon" className="bg-primary/10 hover:bg-primary/20 border-primary/20 hover:border-primary/30 transition-all">
+              <ScanBarcode className="w-4 h-4 text-primary" />
             </Button>
             <div className="flex border border-border rounded-lg">
               <Button
@@ -177,11 +177,11 @@ export function POSInterface({ products: productsProp, categories, currencies, p
             </div>
           </div>
 
-          {/* Categories */}
+          {/* Categories avec style moderne */}
           <div className="flex gap-2 overflow-x-auto pb-2">
             <Badge
               variant={selectedCategory === null ? "default" : "outline"}
-              className="cursor-pointer whitespace-nowrap"
+              className="cursor-pointer whitespace-nowrap hover:scale-105 transition-transform shadow-sm"
               onClick={() => setSelectedCategory(null)}
             >
               Tous
@@ -190,7 +190,7 @@ export function POSInterface({ products: productsProp, categories, currencies, p
               <Badge
                 key={category.id}
                 variant={selectedCategory === category.id ? "default" : "outline"}
-                className="cursor-pointer whitespace-nowrap"
+                className="cursor-pointer whitespace-nowrap hover:scale-105 transition-transform shadow-sm"
                 onClick={() => setSelectedCategory(category.id)}
               >
                 {category.name}
@@ -210,8 +210,8 @@ export function POSInterface({ products: productsProp, categories, currencies, p
         </div>
       </div>
 
-      {/* Right Panel - Cart */}
-      <div className="w-[400px] flex flex-col bg-card rounded-lg border border-border overflow-hidden">
+      {/* Right Panel - Cart avec style moderne */}
+      <div className="w-[400px] flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
         <Cart
           items={cart}
           total={cartTotal}

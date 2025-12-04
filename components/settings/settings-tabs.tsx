@@ -33,7 +33,7 @@ export function SettingsTabs({ settings, currencies, paymentMethods, pointOfSale
   const handleSaveCompany = async () => {
     setLoading(true)
     try {
-      await fetch("/api/settings/company", {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/settings/company`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(companyData),

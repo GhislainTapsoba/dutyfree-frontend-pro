@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { api } from "@/lib/api/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Edit, Trash2, Percent, Tag, MoreHorizontal, Eye } from "lucide-react"
+import { Plus, Loader2, Edit, Trash2, Percent, Tag, MoreHorizontal, Eye, Gift, TrendingUp, Calendar } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -90,11 +91,10 @@ export default function PromotionsPage() {
   const loadPromotions = async () => {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/promotions")
-      const data = await response.json()
-      if (data.data) {
+      const response = await api.get<any[]>("/promotions")
+      if (response.data) {
         // Mapper les données de l'API vers le format du frontend
-        const mappedPromotions = data.data.map((promo: any) => ({
+        const mappedPromotions = response.data.map((promo: any) => ({
           id: promo.id,
           code: promo.code,
           name: promo.name,
@@ -163,10 +163,6 @@ export default function PromotionsPage() {
     }
 
     try {
-      const url = editingPromotion
-        ? `http://localhost:3001/api/promotions/${editingPromotion.id}`
-        : "http://localhost:3001/api/promotions"
-
       // Mapper les données du formulaire vers le format attendu par l'API
       const payload = {
         code: formData.code,
@@ -182,20 +178,19 @@ export default function PromotionsPage() {
         is_active: formData.is_active,
       }
 
-      const response = await fetch(url, {
-        method: editingPromotion ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      let response
+      if (editingPromotion) {
+        response = await api.put<Promotion>(`/promotions/${editingPromotion.id}`, payload)
+      } else {
+        response = await api.post<Promotion>("/promotions", payload)
+      }
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.data) {
         toast.success(editingPromotion ? "Promotion modifiée" : "Promotion créée")
         setDialogOpen(false)
         loadPromotions()
       } else {
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       console.error(error)
@@ -212,15 +207,13 @@ export default function PromotionsPage() {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette promotion ?")) return
 
     try {
-      const response = await fetch(`http://localhost:3001/api/promotions/${id}`, {
-        method: "DELETE",
-      })
+      const response = await api.delete(`/promotions/${id}`)
 
-      if (response.ok) {
+      if (response.data || !response.error) {
         toast.success("Promotion supprimée")
         loadPromotions()
       } else {
-        toast.error("Erreur lors de la suppression")
+        toast.error(response.error || "Erreur lors de la suppression")
       }
     } catch (error) {
       console.error(error)
@@ -259,6 +252,10 @@ export default function PromotionsPage() {
       </div>
     )
   }
+
+  const activePromotions = promotions.filter(p => isPromotionActive(p)).length
+  const upcomingPromotions = promotions.filter(p => new Date(p.start_date) > new Date()).length
+  const expiredPromotions = promotions.filter(p => new Date(p.end_date) < new Date()).length
 
   return (
     <div className="space-y-6">
@@ -459,7 +456,90 @@ export default function PromotionsPage() {
         </Dialog>
       </div>
 
-      <Card>
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Tag className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total promotions</p>
+              <p className="text-3xl font-bold">{promotions.length}</p>
+              <p className="text-xs text-muted-foreground">offres créées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Gift className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Actif
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Promotions actives</p>
+              <p className="text-3xl font-bold">{activePromotions}</p>
+              <p className="text-xs text-muted-foreground">en cours actuellement</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Calendar className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                À venir
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Promotions à venir</p>
+              <p className="text-3xl font-bold">{upcomingPromotions}</p>
+              <p className="text-xs text-muted-foreground">planifiées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <TrendingUp className="w-6 h-6 text-orange-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                Expiré
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Promotions expirées</p>
+              <p className="text-3xl font-bold">{expiredPromotions}</p>
+              <p className="text-xs text-muted-foreground">terminées</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="border-border/50 shadow-sm">
+        <div className="border-b bg-muted/30 px-6 py-4">
+          <h3 className="text-lg font-semibold">Liste des promotions</h3>
+          <p className="text-sm text-muted-foreground mt-1">Gérez vos offres et réductions</p>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

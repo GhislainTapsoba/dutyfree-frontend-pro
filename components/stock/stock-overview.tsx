@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { api } from "@/lib/api/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -36,20 +37,20 @@ export function StockOverview({ products, onReload }: StockOverviewProps) {
     }
     
     try {
-      const response = await fetch("http://localhost:3001/api/stock/adjust", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: productId, quantity, reason: adjustReason || "Ajustement rapide" }),
+      const response = await api.post("/stock/adjust", {
+        product_id: productId,
+        quantity,
+        reason: adjustReason || "Ajustement rapide"
       })
-      const data = await response.json()
-      if (response.ok) {
+
+      if (response.data) {
         toast.success("Stock ajusté")
         setAdjustDialogOpen(null)
         setAdjustQuantity("")
         setAdjustReason("")
         onReload?.()
       } else {
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       toast.error("Erreur lors de l'ajustement")

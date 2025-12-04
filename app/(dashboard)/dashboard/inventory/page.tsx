@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Loader2, ClipboardList, TrendingUp, TrendingDown, AlertTriangle, MoreVertical, Eye, Edit, Trash2 } from "lucide-react"
+import { api } from "@/lib/api/client"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,15 +92,14 @@ export default function InventoryPage() {
   async function loadInventories() {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/stock/inventory")
-      const data = await response.json()
-      if (data.data) {
-        setInventories(data.data)
+      const response = await api.get<Inventory[]>("/stock/inventory")
+      if (response.data) {
+        setInventories(response.data)
 
         // Calculate stats
-        const total = data.data.length
-        const inProgress = data.data.filter((inv: Inventory) => inv.status === "in_progress").length
-        const totalVar = data.data.reduce((sum: number, inv: Inventory) => sum + Math.abs(inv.total_variance_value || 0), 0)
+        const total = response.data.length
+        const inProgress = response.data.filter((inv: Inventory) => inv.status === "in_progress").length
+        const totalVar = response.data.reduce((sum: number, inv: Inventory) => sum + Math.abs(inv.total_variance_value || 0), 0)
         const avgVar = total > 0 ? totalVar / total : 0
 
         setStats({
@@ -120,15 +120,12 @@ export default function InventoryPage() {
   async function handleDelete(id: string) {
     if (!confirm("Supprimer cet inventaire ?")) return
     try {
-      const response = await fetch(`http://localhost:3001/api/stock/inventory/${id}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
+      const response = await api.delete(`/stock/inventory/${id}`)
+      if (response.data || !response.error) {
         toast.success("Inventaire supprimé")
         loadInventories()
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       toast.error("Erreur lors de la suppression")
@@ -137,17 +134,12 @@ export default function InventoryPage() {
 
   async function handleChangeStatus(id: string, newStatus: string) {
     try {
-      const response = await fetch(`http://localhost:3001/api/stock/inventory/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      if (response.ok) {
+      const response = await api.put<Inventory>(`/stock/inventory/${id}`, { status: newStatus })
+      if (response.data) {
         toast.success("Statut modifié")
         loadInventories()
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       toast.error("Erreur lors de la modification")
@@ -158,20 +150,14 @@ export default function InventoryPage() {
     e.preventDefault()
 
     try {
-      const response = await fetch("http://localhost:3001/api/stock/inventory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+      const response = await api.post<Inventory>("/stock/inventory", formData)
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.data) {
         toast.success("Inventaire créé avec succès")
         setDialogOpen(false)
         loadInventories()
       } else {
-        toast.error(data.error || "Erreur lors de la création")
+        toast.error(response.error || "Erreur lors de la création")
       }
     } catch (error) {
       console.error(error)
@@ -290,58 +276,90 @@ export default function InventoryPage() {
         </Dialog>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <ClipboardList className="w-5 h-5 text-primary" />
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <ClipboardList className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Total
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total inventaires</p>
-              <p className="text-2xl font-bold">{stats.total_inventories}</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-chart-2/10 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 text-chart-2" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">En cours</p>
-              <p className="text-2xl font-bold">{stats.in_progress}</p>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total inventaires</p>
+              <p className="text-3xl font-bold">{stats.total_inventories}</p>
+              <p className="text-xs text-muted-foreground">sessions créées</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Actif
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Écart total</p>
-              <p className="text-2xl font-bold">{(stats.total_variance / 1000).toFixed(0)}K</p>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">En cours</p>
+              <p className="text-3xl font-bold">{stats.in_progress}</p>
+              <p className="text-xs text-muted-foreground">inventaires actifs</p>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-chart-4/10 flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-chart-4" />
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                Alerte
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Écart moyen</p>
-              <p className="text-2xl font-bold">{stats.avg_variance.toFixed(0)}</p>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Écart total</p>
+              <p className="text-3xl font-bold">{(stats.total_variance / 1000).toFixed(0)}K</p>
+              <p className="text-xs text-muted-foreground">FCFA d'écart cumulé</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-yellow-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <TrendingDown className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500 to-yellow-500 text-white shadow-sm">
+                Moyenne
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Écart moyen</p>
+              <p className="text-3xl font-bold">{stats.avg_variance.toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">FCFA par inventaire</p>
             </div>
           </div>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-border/50 shadow-sm">
+        <div className="border-b bg-muted/30 px-6 py-4">
+          <h3 className="text-lg font-semibold">Liste des inventaires</h3>
+          <p className="text-sm text-muted-foreground mt-1">Historique et suivi des comptages de stock</p>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

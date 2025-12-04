@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, DollarSign, Edit, RefreshCw } from "lucide-react"
+import { Loader2, DollarSign, Edit, RefreshCw, Coins, CheckCircle2, Star } from "lucide-react"
+import { api } from "@/lib/api/client"
 import {
   Table,
   TableBody,
@@ -62,9 +63,12 @@ export default function CurrenciesPage() {
   const loadCurrencies = async () => {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/currencies")
-      const data = await response.json()
-      if (data.data) setCurrencies(data.data)
+      const response = await api.get("/currencies")
+      if (response.data) {
+        setCurrencies(response.data)
+      } else if (response.error) {
+        toast.error(response.error)
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des devises:", error)
       toast.error("Erreur lors du chargement")
@@ -107,24 +111,16 @@ export default function CurrenciesPage() {
     }
 
     try {
-      const url = editingCurrency
-        ? `http://localhost:3001/api/currencies/${editingCurrency.code}`
-        : "http://localhost:3001/api/currencies"
+      const response = editingCurrency
+        ? await api.put(`/currencies/${editingCurrency.code}`, formData)
+        : await api.post("/currencies", formData)
 
-      const response = await fetch(url, {
-        method: editingCurrency ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.data) {
         toast.success(editingCurrency ? "Devise modifiée" : "Devise créée")
         setDialogOpen(false)
         loadCurrencies()
-      } else {
-        toast.error(data.error || "Erreur")
+      } else if (response.error) {
+        toast.error(response.error)
       }
     } catch (error) {
       console.error(error)
@@ -139,6 +135,9 @@ export default function CurrenciesPage() {
       </div>
     )
   }
+
+  const activeCurrencies = currencies.filter(c => c.is_active).length
+  const defaultCurrency = currencies.find(c => c.is_default)
 
   return (
     <div className="space-y-6">
@@ -261,6 +260,66 @@ export default function CurrenciesPage() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Coins className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total devises</p>
+              <p className="text-3xl font-bold">{currencies.length}</p>
+              <p className="text-xs text-muted-foreground">configurées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Actives
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Devises actives</p>
+              <p className="text-3xl font-bold">{activeCurrencies}</p>
+              <p className="text-xs text-muted-foreground">en utilisation</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Star className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                Par défaut
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Devise par défaut</p>
+              <p className="text-3xl font-bold">{defaultCurrency?.code || "-"}</p>
+              <p className="text-xs text-muted-foreground">{defaultCurrency?.symbol || "Non définie"}</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card>

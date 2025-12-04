@@ -150,21 +150,50 @@ export function NotificationCenter() {
   }
 
   const getIcon = (type: string, priority: string) => {
-    if (priority === "urgent") return <AlertCircle className="w-5 h-5 text-red-500" />
+    if (priority === "urgent")
+      return (
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center shadow-md">
+          <AlertCircle className="w-5 h-5 text-white" />
+        </div>
+      )
 
     switch (type) {
       case "stock_alert":
-        return <AlertTriangle className="w-5 h-5 text-orange-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-md">
+            <AlertTriangle className="w-5 h-5 text-white" />
+          </div>
+        )
       case "expiry_warning":
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-md">
+            <AlertCircle className="w-5 h-5 text-white" />
+          </div>
+        )
       case "order_update":
-        return <CheckCircle2 className="w-5 h-5 text-blue-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-md">
+            <CheckCircle2 className="w-5 h-5 text-white" />
+          </div>
+        )
       case "promotion":
-        return <Info className="w-5 h-5 text-purple-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+            <Info className="w-5 h-5 text-white" />
+          </div>
+        )
       case "system":
-        return <Info className="w-5 h-5 text-gray-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-500 to-slate-500 flex items-center justify-center shadow-md">
+            <Info className="w-5 h-5 text-white" />
+          </div>
+        )
       default:
-        return <Bell className="w-5 h-5 text-gray-500" />
+        return (
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-500 to-slate-500 flex items-center justify-center shadow-md">
+            <Bell className="w-5 h-5 text-white" />
+          </div>
+        )
     }
   }
 
@@ -197,24 +226,26 @@ export function NotificationCenter() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {stats && stats.unread > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {stats.unread > 99 ? "99+" : stats.unread}
-            </Badge>
-          )}
+        <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 transition-all h-10 w-10 rounded-lg">
+          <div className="relative">
+            <Bell className="h-5 w-5" />
+            {stats && stats.unread > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-gradient-to-br from-red-500 to-pink-500 border-2 border-background shadow-lg animate-pulse"
+              >
+                {stats.unread > 99 ? "99+" : stats.unread}
+              </Badge>
+            )}
+          </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-96 p-0" align="end">
-        <div className="flex items-center justify-between p-4 border-b">
+      <PopoverContent className="w-96 p-0 rounded-xl border-border/50 shadow-xl" align="end">
+        <div className="flex items-center justify-between p-4 border-b border-border/50 bg-gradient-to-r from-card to-card/50">
           <div>
-            <h3 className="font-semibold">Notifications</h3>
+            <h3 className="font-bold text-base">Notifications</h3>
             {stats && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground font-medium">
                 {stats.unread} non lue{stats.unread !== 1 ? "s" : ""} sur {stats.total}
               </p>
             )}
@@ -224,7 +255,7 @@ export function NotificationCenter() {
               variant="ghost"
               size="sm"
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-              className="text-xs"
+              className="text-xs rounded-lg hover:bg-primary/10 font-medium"
             >
               {showUnreadOnly ? "Toutes" : "Non lues"}
             </Button>
@@ -234,6 +265,7 @@ export function NotificationCenter() {
                 size="icon"
                 onClick={markAllAsRead}
                 title="Tout marquer comme lu"
+                className="h-8 w-8 rounded-lg hover:bg-primary/10"
               >
                 <CheckCheck className="h-4 w-4" />
               </Button>
@@ -256,18 +288,17 @@ export function NotificationCenter() {
               </p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/50">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={cn(
-                    "p-4 hover:bg-muted/50 transition-colors relative group",
-                    !notification.is_read && "bg-blue-500/5",
-                    getPriorityColor(notification.priority)
+                    "p-4 hover:bg-muted/50 transition-all relative group",
+                    !notification.is_read && "bg-gradient-to-r from-blue-500/5 to-transparent border-l-2 border-blue-500"
                   )}
                 >
                   <div className="flex gap-3">
-                    <div className="flex-shrink-0 mt-1">
+                    <div className="flex-shrink-0">
                       {getIcon(notification.type, notification.priority)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -275,20 +306,20 @@ export function NotificationCenter() {
                         <h4
                           className={cn(
                             "text-sm font-medium",
-                            !notification.is_read && "font-semibold"
+                            !notification.is_read && "font-bold"
                           )}
                         >
                           {notification.title}
                         </h4>
                         {!notification.is_read && (
-                          <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+                          <div className="w-2 h-2 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex-shrink-0 animate-pulse" />
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 font-medium">
                         {notification.message}
                       </p>
                       <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground font-medium">
                           {formatDate(notification.created_at)}
                         </p>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -296,7 +327,7 @@ export function NotificationCenter() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-7 w-7 rounded-lg hover:bg-green-500/10 hover:text-green-600"
                               onClick={() => markAsRead(notification.id)}
                               title="Marquer comme lu"
                             >
@@ -306,7 +337,7 @@ export function NotificationCenter() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
+                            className="h-7 w-7 rounded-lg hover:bg-red-500/10 hover:text-red-600"
                             onClick={() => deleteNotification(notification.id)}
                             title="Supprimer"
                           >
@@ -318,7 +349,7 @@ export function NotificationCenter() {
                         <Button
                           variant="link"
                           size="sm"
-                          className="h-auto p-0 text-xs mt-1"
+                          className="h-auto p-0 text-xs mt-2 font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent hover:from-purple-500 hover:to-pink-500"
                           onClick={() => {
                             window.location.href = notification.action_url!
                             markAsRead(notification.id)
@@ -335,12 +366,12 @@ export function NotificationCenter() {
           )}
         </ScrollArea>
 
-        <Separator />
-        <div className="p-2">
+        <Separator className="bg-border/50" />
+        <div className="p-3 bg-gradient-to-r from-card to-card/50">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full"
+            className="w-full rounded-lg hover:bg-primary/10 font-semibold transition-all"
             onClick={() => {
               window.location.href = "/dashboard/notifications"
               setOpen(false)

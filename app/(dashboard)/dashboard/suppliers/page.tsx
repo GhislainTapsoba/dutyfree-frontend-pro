@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { suppliersService, Supplier } from "@/lib/api"
+import { api } from "@/lib/api/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Building2, Phone, Mail, MapPin, Loader2, MoreHorizontal, Edit, Trash2, Ban } from "lucide-react"
+import { Plus, Building2, Phone, Mail, MapPin, Loader2, MoreHorizontal, Edit, Trash2, Ban, Users, Globe, CheckCircle } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -17,20 +18,16 @@ export default function SuppliersPage() {
 
   const handleDeactivate = async (id: string) => {
     if (!confirm("Êtes-vous sûr de vouloir désactiver ce fournisseur ?")) return
-    
+
     try {
-      const response = await fetch(`http://localhost:3001/api/suppliers/${id}`, {
-        method: "DELETE",
-      })
-      
-      const data = await response.json()
-      
-      if (response.ok) {
+      const response = await api.delete(`/suppliers/${id}`)
+
+      if (response.data || !response.error) {
         toast.success("Fournisseur désactivé")
         const res = await suppliersService.getSuppliers()
         if (res.data) setSuppliers(res.data)
       } else {
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       console.error("Erreur:", error)
@@ -40,19 +37,16 @@ export default function SuppliersPage() {
 
   const handlePermanentDelete = async (id: string) => {
     if (!confirm("⚠️ ATTENTION : Supprimer définitivement ce fournisseur ? Cette action est irréversible !")) return
-    
+
     try {
-      const response = await fetch(`http://localhost:3001/api/suppliers/${id}/permanent`, {
-        method: "DELETE",
-      })
-      
-      if (response.ok) {
+      const response = await api.delete(`/suppliers/${id}/permanent`)
+
+      if (response.data || !response.error) {
         toast.success("Fournisseur supprimé définitivement")
         const res = await suppliersService.getSuppliers()
         if (res.data) setSuppliers(res.data)
       } else {
-        const data = await response.json()
-        toast.error(data.error || "Erreur")
+        toast.error(response.error || "Erreur")
       }
     } catch (error) {
       console.error("Erreur:", error)
@@ -84,6 +78,10 @@ export default function SuppliersPage() {
     )
   }
 
+  const activeSuppliers = suppliers.filter(s => s.is_active).length
+  const inactiveSuppliers = suppliers.length - activeSuppliers
+  const countries = [...new Set(suppliers.map(s => s.country).filter(Boolean))].length
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -104,9 +102,69 @@ export default function SuppliersPage() {
         </div>
       </div>
 
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Building2 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total fournisseurs</p>
+              <p className="text-3xl font-bold">{suppliers.length}</p>
+              <p className="text-xs text-muted-foreground">fournisseurs enregistrés</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <CheckCircle className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Actif
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Fournisseurs actifs</p>
+              <p className="text-3xl font-bold">{activeSuppliers}</p>
+              <p className="text-xs text-muted-foreground">partenaires opérationnels</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Globe className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Mondial
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Pays représentés</p>
+              <p className="text-3xl font-bold">{countries}</p>
+              <p className="text-xs text-muted-foreground">diversité géographique</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {suppliers?.filter(s => showInactive || s.is_active).map((supplier) => (
-          <Card key={supplier.id} className="border-border p-6">
+          <Card key={supplier.id} className="border-border/50 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
             <div className="flex items-start justify-between mb-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Building2 className="w-6 h-6 text-primary" />

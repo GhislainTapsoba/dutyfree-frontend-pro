@@ -63,49 +63,65 @@ export default function PaymentsPage() {
         <p className="text-muted-foreground">Historique des transactions et paiements</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-border">
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Banknote className="w-6 h-6 text-primary" />
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Banknote className="w-6 h-6 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total du jour</p>
-                <p className="text-2xl font-bold">{new Intl.NumberFormat("fr-FR").format(totalToday)} XOF</p>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Jour
               </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total du jour</p>
+              <p className="text-3xl font-bold">{new Intl.NumberFormat("fr-FR").format(totalToday)}</p>
+              <p className="text-xs text-muted-foreground">XOF encaissés</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-chart-2/10 flex items-center justify-center">
-                <Receipt className="w-6 h-6 text-chart-2" />
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Receipt className="w-6 h-6 text-emerald-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Transactions</p>
-                <p className="text-2xl font-bold">{todayPayments.length}</p>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Transactions
               </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Transactions du jour</p>
+              <p className="text-3xl font-bold">{todayPayments.length}</p>
+              <p className="text-xs text-muted-foreground">paiements effectués</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-chart-4/10 flex items-center justify-center">
-                <CreditCard className="w-6 h-6 text-chart-4" />
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <CreditCard className="w-6 h-6 text-violet-600" />
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Moyenne</p>
-                <p className="text-2xl font-bold">
-                  {new Intl.NumberFormat("fr-FR").format(
-                    todayPayments.length > 0 ? totalToday / todayPayments.length : 0,
-                  )}{" "}
-                  XOF
-                </p>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Moyen
               </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Paiement moyen</p>
+              <p className="text-3xl font-bold">
+                {new Intl.NumberFormat("fr-FR").format(
+                  todayPayments.length > 0 ? Math.round(totalToday / todayPayments.length) : 0,
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">XOF par transaction</p>
             </div>
           </CardContent>
         </Card>

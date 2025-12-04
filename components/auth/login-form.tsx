@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { Loader2, Eye, EyeOff, AlertCircle, Mail, Lock } from "lucide-react"
 import { authService } from "@/lib/api"
 
 export function LoginForm() {
@@ -58,9 +58,9 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="border-border bg-card">
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <Card className="border-border/50 bg-card shadow-lg">
+      <CardContent className="pt-6 pb-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
               <AlertCircle className="h-4 w-4" />
@@ -69,46 +69,62 @@ export function LoginForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Adresse email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="votre@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="bg-secondary border-border"
-            />
+            <Label htmlFor="email" className="text-sm font-medium">
+              Adresse email
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="exemple@dutyfree.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="pl-10 h-11 bg-background border-border/50 focus:border-primary transition-colors"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Mot de passe</Label>
-              <button type="button" className="text-sm text-primary hover:underline" onClick={() => {}}>
+              <Label htmlFor="password" className="text-sm font-medium">
+                Mot de passe
+              </Label>
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline font-medium transition-colors"
+                onClick={() => {}}
+              >
                 Mot de passe oublié ?
               </button>
             </div>
             <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
+                placeholder="Entrez votre mot de passe"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-secondary border-border pr-10"
+                className="pl-10 pr-10 h-11 bg-background border-border/50 focus:border-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full h-11 font-medium shadow-md hover:shadow-lg transition-all"
+            disabled={loading}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -118,6 +134,13 @@ export function LoginForm() {
               "Se connecter"
             )}
           </Button>
+
+          {/* Demo Credentials Info */}
+          <div className="pt-4 border-t border-border/50">
+            <p className="text-xs text-center text-muted-foreground">
+              Environnement de test sécurisé
+            </p>
+          </div>
         </form>
       </CardContent>
     </Card>

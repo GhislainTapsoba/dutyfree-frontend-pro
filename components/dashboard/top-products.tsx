@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, Loader2 } from "lucide-react"
+import { Package, Loader2, TrendingUp, Award } from "lucide-react"
 import { reportsService } from "@/lib/api"
 
 interface ProductData {
@@ -49,7 +49,7 @@ export function TopProducts() {
 
   if (loading) {
     return (
-      <Card className="bg-card border-border h-full">
+      <Card className="bg-card border-border/50 h-full">
         <CardContent className="flex items-center justify-center h-[380px]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </CardContent>
@@ -59,38 +59,72 @@ export function TopProducts() {
 
   const maxRevenue = topProducts.length > 0 ? Math.max(...topProducts.map((p) => p.revenue)) : 1
 
+  const gradients = [
+    "from-yellow-400 to-orange-500",
+    "from-blue-400 to-blue-600",
+    "from-purple-400 to-purple-600",
+    "from-green-400 to-green-600",
+    "from-pink-400 to-pink-600",
+  ]
+
+  const medals = [
+    { icon: Award, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+    { icon: Award, color: "text-gray-400", bg: "bg-gray-400/10" },
+    { icon: Award, color: "text-orange-600", bg: "bg-orange-600/10" },
+    { icon: TrendingUp, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10" },
+  ]
+
   return (
-    <Card className="bg-card border-border h-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-semibold">Top produits</CardTitle>
-        <Package className="w-5 h-5 text-muted-foreground" />
+    <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 h-full shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+            <Package className="w-4 h-4 text-white" />
+          </div>
+          Top Produits
+        </CardTitle>
+        <span className="text-xs text-muted-foreground">30 derniers jours</span>
       </CardHeader>
       <CardContent>
         {topProducts.length === 0 ? (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-            Aucune donnée disponible
+          <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
+            <Package className="w-16 h-16 mb-4 opacity-20" />
+            <p>Aucune donnée disponible</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {topProducts.map((product, index) => (
-            <div key={product.name} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
-                  <span className="text-sm font-medium truncate max-w-[140px]">{product.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-primary">
-                  {new Intl.NumberFormat("fr-FR", { notation: "compact" }).format(product.revenue)}
-                </span>
-              </div>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden">
+            {topProducts.map((product, index) => {
+              const Icon = medals[index]?.icon || TrendingUp
+              return (
                 <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${(product.revenue / maxRevenue) * 100}%` }}
-                />
-              </div>
-            </div>
-            ))}
+                  key={product.name}
+                  className="group p-3 rounded-xl bg-background/50 border border-border/50 hover:border-primary/50 transition-all hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-8 h-8 rounded-lg ${medals[index]?.bg} flex items-center justify-center`}>
+                      <Icon className={`w-4 h-4 ${medals[index]?.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{product.name}</p>
+                      <p className="text-xs text-muted-foreground">{product.sales} ventes</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        {new Intl.NumberFormat("fr-FR", { notation: "compact" }).format(product.revenue)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">FCFA</p>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                    <div
+                      className={`h-full bg-gradient-to-r ${gradients[index]} rounded-full transition-all duration-500 group-hover:scale-x-105`}
+                      style={{ width: `${(product.revenue / maxRevenue) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </CardContent>

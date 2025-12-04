@@ -34,7 +34,7 @@ export function ProductGrid({ products, viewMode, onAddToCart, currency }: Produ
         {products.map((product) => (
           <div
             key={product.id}
-            className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border hover:border-primary/50 transition-colors"
+            className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border/50 hover:border-primary/50 hover:shadow-md transition-all hover:-translate-y-0.5"
           >
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
@@ -90,7 +90,7 @@ export function ProductGrid({ products, viewMode, onAddToCart, currency }: Produ
         <Card
           key={product.id}
           className={cn(
-            "p-3 cursor-pointer border-border hover:border-primary/50 transition-colors",
+            "p-3 cursor-pointer border-border/50 hover:border-primary/50 hover:shadow-lg transition-all hover:-translate-y-1",
             (product.current_stock || 0) === 0 && "opacity-50",
           )}
           onClick={() => (product.current_stock || 0) > 0 && onAddToCart(product)}
@@ -124,16 +124,16 @@ export function ProductGrid({ products, viewMode, onAddToCart, currency }: Produ
             <p className="font-medium text-sm truncate">{product.name_fr || product.name_en}</p>
             <p className="text-xs text-muted-foreground">{product.code}</p>
             <div className="flex items-center justify-between pt-1">
-              <span className="font-semibold text-primary text-sm">
+              <span className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70 text-sm">
                 {formatPrice(product.selling_price_xof || 0)} {currency?.code}
               </span>
               {(product.current_stock || 0) <= 5 && (product.current_stock || 0) > 0 && (
-                <Badge variant="outline" className="text-warning border-warning text-xs">
+                <Badge variant="outline" className="text-orange-600 border-orange-600/50 bg-orange-50 text-xs shadow-sm">
                   {product.current_stock}
                 </Badge>
               )}
               {(product.current_stock || 0) === 0 && (
-                <Badge variant="destructive" className="text-xs">
+                <Badge className="text-xs bg-gradient-to-r from-destructive to-destructive/80 shadow-sm">
                   Rupture
                 </Badge>
               )}

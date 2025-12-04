@@ -4,7 +4,8 @@ import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, Hotel, Percent, CreditCard } from "lucide-react"
+import { Plus, Loader2, Hotel, Percent, CreditCard, Eye, Edit, Trash2, MoreVertical, Users, UserCheck, Wallet, TrendingUp } from "lucide-react"
+import { api } from "@/lib/api/client"
 import {
   Table,
   TableBody,
@@ -28,17 +29,23 @@ import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 interface HotelGuest {
   id: string
-  guest_code: string
-  full_name: string
-  hotel_name: string
-  room_number: string | null
-  check_in_date: string
-  check_out_date: string | null
   badge_number: string | null
-  card_number: string | null
+  professional_card: string | null
+  chip_card_id: string | null
+  guest_name: string
+  hotel_name: string | null
+  check_in_date: string | null
+  check_out_date: string | null
   discount_percentage: number
   electronic_wallet_balance: number
   is_active: boolean
@@ -49,16 +56,18 @@ export default function HotelGuestsPage() {
   const [guests, setGuests] = useState<HotelGuest[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [editingGuest, setEditingGuest] = useState<HotelGuest | null>(null)
+  const [viewingGuest, setViewingGuest] = useState<HotelGuest | null>(null)
 
   const [formData, setFormData] = useState({
-    guest_code: "",
-    full_name: "",
+    badge_number: "",
+    professional_card: "",
+    chip_card_id: "",
+    guest_name: "",
     hotel_name: "",
-    room_number: "",
     check_in_date: new Date().toISOString().split("T")[0],
     check_out_date: "",
-    badge_number: "",
-    card_number: "",
     discount_percentage: 10,
     electronic_wallet_balance: 0,
     is_active: true,
@@ -71,9 +80,12 @@ export default function HotelGuestsPage() {
   const loadGuests = async () => {
     setLoading(true)
     try {
-      const response = await fetch("http://localhost:3001/api/hotel-guests")
-      const data = await response.json()
-      if (data.data) setGuests(data.data)
+      const response = await api.get("/hotel-guests")
+      if (response.data) {
+        setGuests(response.data)
+      } else if (response.error) {
+        toast.error(response.error)
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des clients hébergés:", error)
       toast.error("Erreur lors du chargement")
@@ -82,33 +94,115 @@ export default function HotelGuestsPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleOpenDialog = (guest?: HotelGuest) => {
+    if (guest) {
+      setEditingGuest(guest)
+      setFormData({
+        badge_number: guest.badge_number || "",
+        professional_card: guest.professional_card || "",
+        chip_card_id: guest.chip_card_id || "",
+        guest_name: guest.guest_name,
+        hotel_name: guest.hotel_name || "",
+        check_in_date: guest.check_in_date || new Date().toISOString().split("T")[0],
+        check_out_date: guest.check_out_date || "",
+        discount_percentage: guest.discount_percentage,
+        electronic_wallet_balance: guest.electronic_wallet_balance,
+        is_active: guest.is_active,
+      })
+    } else {
+      setEditingGuest(null)
+      setFormData({
+        badge_number: "",
+        professional_card: "",
+        chip_card_id: "",
+        guest_name: "",
+        hotel_name: "",
+        check_in_date: new Date().toISOString().split("T")[0],
+        check_out_date: "",
+        discount_percentage: 10,
+        electronic_wallet_balance: 0,
+        is_active: true,
+      })
+    }
+    setDialogOpen(true)
+  }
 
-    if (!formData.full_name || !formData.hotel_name) {
-      toast.error("Veuillez remplir tous les champs obligatoires")
+  const handleView = async (guest: HotelGuest) => {
+    try {
+      const response = await api.get<HotelGuest>(`/hotel-guests/${guest.id}`)
+      if (response.data) {
+        setViewingGuest(response.data)
+        setViewDialogOpen(true)
+      } else {
+        toast.error("Erreur lors du chargement des détails")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Erreur lors du chargement")
+    }
+  }
+
+  const handleDelete = async (guest: HotelGuest) => {
+    if (!confirm(`Êtes-vous sûr de vouloir désactiver le client ${guest.guest_name} ?`)) {
       return
     }
 
     try {
-      const response = await fetch("http://localhost:3001/api/hotel-guests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        toast.success("Client hébergé ajouté avec succès")
-        setDialogOpen(false)
+      const response = await api.delete(`/hotel-guests/${guest.id}`)
+      if (response.data || !response.error) {
+        toast.success("Client désactivé avec succès")
         loadGuests()
       } else {
-        toast.error(data.error || "Erreur lors de la création")
+        toast.error(response.error || "Erreur lors de la suppression")
       }
     } catch (error) {
       console.error(error)
-      toast.error("Erreur lors de la création")
+      toast.error("Erreur lors de la suppression")
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.guest_name) {
+      toast.error("Veuillez remplir le nom du client")
+      return
+    }
+
+    try {
+      let response
+
+      if (editingGuest) {
+        // Mode édition
+        response = await api.put(`/hotel-guests/${editingGuest.id}`, formData)
+      } else {
+        // Mode création
+        response = await api.post("/hotel-guests", formData)
+      }
+
+      if (response.data) {
+        toast.success(editingGuest ? "Client modifié avec succès" : "Client ajouté avec succès")
+        setDialogOpen(false)
+        setEditingGuest(null)
+        setFormData({
+          badge_number: "",
+          professional_card: "",
+          chip_card_id: "",
+          guest_name: "",
+          hotel_name: "",
+          check_in_date: new Date().toISOString().split("T")[0],
+          check_out_date: "",
+          discount_percentage: 10,
+          electronic_wallet_balance: 0,
+          is_active: true,
+        })
+        loadGuests()
+      } else if (response.error) {
+        toast.error(response.error)
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Erreur lors de l'enregistrement")
     }
   }
 
@@ -126,6 +220,10 @@ export default function HotelGuestsPage() {
     )
   }
 
+  const activeGuests = guests.filter(g => isActive(g)).length
+  const totalWalletBalance = guests.reduce((sum, g) => sum + g.electronic_wallet_balance, 0)
+  const avgDiscount = guests.length > 0 ? guests.reduce((sum, g) => sum + g.discount_percentage, 0) / guests.length : 0
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -137,7 +235,7 @@ export default function HotelGuestsPage() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => handleOpenDialog()}>
               <Plus className="w-4 h-4 mr-2" />
               Nouveau client
             </Button>
@@ -145,7 +243,9 @@ export default function HotelGuestsPage() {
           <DialogContent className="max-w-2xl">
             <form onSubmit={handleSubmit}>
               <DialogHeader>
-                <DialogTitle>Nouveau client hébergé</DialogTitle>
+                <DialogTitle>
+                  {editingGuest ? "Modifier le client hébergé" : "Nouveau client hébergé"}
+                </DialogTitle>
                 <DialogDescription>
                   Enregistrez un client hébergé avec ses avantages (remise + porte-monnaie électronique)
                 </DialogDescription>
@@ -154,46 +254,55 @@ export default function HotelGuestsPage() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="guest_code">Code client</Label>
+                    <Label htmlFor="guest_name">Nom du client *</Label>
                     <Input
-                      id="guest_code"
-                      value={formData.guest_code}
-                      onChange={(e) => setFormData({ ...formData, guest_code: e.target.value })}
-                      placeholder="AUTO"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="full_name">Nom complet *</Label>
-                    <Input
-                      id="full_name"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      id="guest_name"
+                      value={formData.guest_name}
+                      onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
                       placeholder="Jean Dupont"
                       required
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="hotel_name">Hôtel *</Label>
+                    <Label htmlFor="hotel_name">Hôtel</Label>
                     <Input
                       id="hotel_name"
                       value={formData.hotel_name}
                       onChange={(e) => setFormData({ ...formData, hotel_name: e.target.value })}
                       placeholder="Hôtel Azalaï"
-                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="badge_number">N° Badge</Label>
+                    <Input
+                      id="badge_number"
+                      value={formData.badge_number}
+                      onChange={(e) => setFormData({ ...formData, badge_number: e.target.value })}
+                      placeholder="BADGE001"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="room_number">N° Chambre</Label>
+                    <Label htmlFor="professional_card">Carte pro</Label>
                     <Input
-                      id="room_number"
-                      value={formData.room_number}
-                      onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-                      placeholder="101"
+                      id="professional_card"
+                      value={formData.professional_card}
+                      onChange={(e) => setFormData({ ...formData, professional_card: e.target.value })}
+                      placeholder="PRO001"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="chip_card_id">Carte à puce</Label>
+                    <Input
+                      id="chip_card_id"
+                      value={formData.chip_card_id}
+                      onChange={(e) => setFormData({ ...formData, chip_card_id: e.target.value })}
+                      placeholder="CHIP001"
                     />
                   </div>
                 </div>
@@ -294,25 +403,104 @@ export default function HotelGuestsPage() {
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Annuler
                 </Button>
-                <Button type="submit">Créer</Button>
+                <Button type="submit">{editingGuest ? "Modifier" : "Créer"}</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Users className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total clients</p>
+              <p className="text-3xl font-bold">{guests.length}</p>
+              <p className="text-xs text-muted-foreground">clients enregistrés</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <UserCheck className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Actifs
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Clients actifs</p>
+              <p className="text-3xl font-bold">{activeGuests}</p>
+              <p className="text-xs text-muted-foreground">en séjour</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Wallet className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Solde total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Porte-monnaie total</p>
+              <p className="text-3xl font-bold">{(totalWalletBalance / 1000).toFixed(0)}K</p>
+              <p className="text-xs text-muted-foreground">FCFA cumulés</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Percent className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                Remise moy.
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Remise moyenne</p>
+              <p className="text-3xl font-bold">{avgDiscount.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">sur tous les clients</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <Card>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
               <TableHead>Client</TableHead>
               <TableHead>Hôtel</TableHead>
               <TableHead>Séjour</TableHead>
-              <TableHead>Badge / Carte</TableHead>
+              <TableHead>Badge / Cartes</TableHead>
               <TableHead className="text-right">Remise</TableHead>
               <TableHead className="text-right">Porte-monnaie</TableHead>
               <TableHead>Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -326,16 +514,16 @@ export default function HotelGuestsPage() {
             ) : (
               guests.map((guest) => (
                 <TableRow key={guest.id}>
-                  <TableCell className="font-mono font-semibold">{guest.guest_code}</TableCell>
                   <TableCell>
-                    <div className="font-medium">{guest.full_name}</div>
-                    {guest.room_number && (
-                      <div className="text-xs text-muted-foreground">Chambre {guest.room_number}</div>
-                    )}
+                    <div className="font-medium">{guest.guest_name}</div>
                   </TableCell>
-                  <TableCell>{guest.hotel_name}</TableCell>
+                  <TableCell>{guest.hotel_name || "-"}</TableCell>
                   <TableCell className="text-sm">
-                    <div>{format(new Date(guest.check_in_date), "dd MMM", { locale: fr })}</div>
+                    {guest.check_in_date ? (
+                      <div>{format(new Date(guest.check_in_date), "dd MMM", { locale: fr })}</div>
+                    ) : (
+                      "-"
+                    )}
                     {guest.check_out_date && (
                       <div className="text-muted-foreground">
                         {format(new Date(guest.check_out_date), "dd MMM", { locale: fr })}
@@ -343,7 +531,7 @@ export default function HotelGuestsPage() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm space-y-1">
+                    <div className="text-xs space-y-1">
                       {guest.badge_number && (
                         <div className="flex items-center gap-1">
                           <Badge variant="outline" className="text-xs">
@@ -354,13 +542,23 @@ export default function HotelGuestsPage() {
                           </span>
                         </div>
                       )}
-                      {guest.card_number && (
+                      {guest.professional_card && (
                         <div className="flex items-center gap-1">
                           <Badge variant="outline" className="text-xs">
-                            Carte
+                            Carte Pro
                           </Badge>
                           <span className="text-muted-foreground font-mono text-xs">
-                            {guest.card_number}
+                            {guest.professional_card}
+                          </span>
+                        </div>
+                      )}
+                      {guest.chip_card_id && (
+                        <div className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs">
+                            Puce
+                          </Badge>
+                          <span className="text-muted-foreground font-mono text-xs">
+                            {guest.chip_card_id}
                           </span>
                         </div>
                       )}
@@ -385,12 +583,142 @@ export default function HotelGuestsPage() {
                       {isActive(guest) ? "Actif" : "Inactif"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleView(guest)}>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Voir détails
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenDialog(guest)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleDelete(guest)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Désactiver
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </Card>
+
+      {/* View Details Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails du client hébergé</DialogTitle>
+            <DialogDescription>
+              Informations complètes sur le client hébergé
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingGuest && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Nom du client</Label>
+                  <p className="font-medium">{viewingGuest.guest_name}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Hôtel</Label>
+                  <p className="font-medium">{viewingGuest.hotel_name || "-"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">N° Badge</Label>
+                  <p className="font-medium font-mono">{viewingGuest.badge_number || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Carte Professionnelle</Label>
+                  <p className="font-medium font-mono">{viewingGuest.professional_card || "-"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Carte à Puce</Label>
+                  <p className="font-medium font-mono">{viewingGuest.chip_card_id || "-"}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Date d'arrivée</Label>
+                  <p className="font-medium">
+                    {viewingGuest.check_in_date
+                      ? format(new Date(viewingGuest.check_in_date), "dd MMMM yyyy", { locale: fr })
+                      : "-"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Date de départ</Label>
+                  <p className="font-medium">
+                    {viewingGuest.check_out_date
+                      ? format(new Date(viewingGuest.check_out_date), "dd MMMM yyyy", { locale: fr })
+                      : "-"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Remise</Label>
+                  <div className="flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-primary" />
+                    <p className="text-xl font-semibold text-primary">
+                      {viewingGuest.discount_percentage}%
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Porte-monnaie électronique</Label>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-xl font-semibold">
+                      {viewingGuest.electronic_wallet_balance.toLocaleString("fr-FR")} FCFA
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-muted-foreground">Statut</Label>
+                <Badge variant={isActive(viewingGuest) ? "default" : "secondary"} className="mt-1">
+                  {isActive(viewingGuest) ? "Actif" : "Inactif"}
+                </Badge>
+              </div>
+
+              <div className="border-t pt-4 text-sm text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Créé le:</span>
+                  <span>{format(new Date(viewingGuest.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span>Modifié le:</span>
+                  <span>{format(new Date(viewingGuest.updated_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card className="p-4 bg-muted/50">
         <div className="flex items-start gap-3">

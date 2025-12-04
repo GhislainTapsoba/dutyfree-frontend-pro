@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { api } from "@/lib/api/client"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Loader2, FileText, Edit, CheckCircle, XCircle, AlertCircle, Clock, Eye, Trash2, MoreHorizontal } from "lucide-react"
+import { Plus, Loader2, FileText, Edit, CheckCircle, XCircle, AlertCircle, Clock, Eye, Trash2, MoreHorizontal, DollarSign, Receipt } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -287,6 +288,11 @@ export default function SupplierInvoicesPage() {
     )
   }
 
+  const pendingInvoices = invoices.filter(i => i.status === 'pending').length
+  const paidInvoices = invoices.filter(i => i.status === 'paid').length
+  const totalAmount = invoices.reduce((sum, i) => sum + i.total, 0)
+  const totalPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.total, 0)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -466,6 +472,85 @@ export default function SupplierInvoicesPage() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Stats Cards avec Design Moderne */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Receipt className="w-6 h-6 text-blue-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-sm">
+                Total
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Total factures</p>
+              <p className="text-3xl font-bold">{invoices.length}</p>
+              <p className="text-xs text-muted-foreground">factures enregistrées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <Clock className="w-6 h-6 text-orange-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-sm">
+                En attente
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Factures en attente</p>
+              <p className="text-3xl font-bold">{pendingInvoices}</p>
+              <p className="text-xs text-muted-foreground">à valider</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <CheckCircle className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm">
+                Payées
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Factures payées</p>
+              <p className="text-3xl font-bold">{paidInvoices}</p>
+              <p className="text-xs text-muted-foreground">réglées</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="relative overflow-hidden border-border/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
+          <div className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center ring-4 ring-background shadow-sm">
+                <DollarSign className="w-6 h-6 text-violet-600" />
+              </div>
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow-sm">
+                Montant
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-muted-foreground">Montant total</p>
+              <p className="text-3xl font-bold">{(totalAmount / 1000000).toFixed(1)}M</p>
+              <p className="text-xs text-muted-foreground">FCFA de factures</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card>

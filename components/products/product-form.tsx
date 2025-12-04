@@ -47,7 +47,9 @@ export function ProductForm({ product, categories, suppliers }: ProductFormProps
     setLoading(true)
 
     try {
-      const response = await fetch(product ? `/api/products/${product.id}` : "/api/products", {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const endpoint = product ? `${API_URL}/products/${product.id}` : `${API_URL}/products`
+      const response = await fetch(endpoint, {
         method: product ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

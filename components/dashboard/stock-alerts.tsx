@@ -18,9 +18,9 @@ export function StockAlerts({ products }: StockAlertsProps) {
           <p className="text-muted-foreground text-sm text-center py-8">Aucune alerte de stock</p>
         ) : (
           <div className="space-y-3">
-            {products.map((product, index) => (
+            {products.map((product) => (
               <div
-                key={`${product.id}-${index}`}
+                key={product.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20"
               >
                 <div className="flex items-center gap-3">

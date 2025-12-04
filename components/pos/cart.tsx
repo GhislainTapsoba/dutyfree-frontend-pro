@@ -45,16 +45,27 @@ export function Cart({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Cart Header */}
-      <div className="p-4 border-b border-border">
+      {/* Cart Header avec gradient */}
+      <div className="p-4 border-b border-border bg-gradient-to-br from-primary/5 via-transparent to-primary/5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <ShoppingCart className="w-4 h-4 text-primary" />
+            </div>
             <h2 className="font-semibold">Panier</h2>
-            {totalItems > 0 && <Badge variant="secondary">{totalItems}</Badge>}
+            {totalItems > 0 && (
+              <Badge className="bg-gradient-to-r from-primary to-primary/80 shadow-sm">
+                {totalItems}
+              </Badge>
+            )}
           </div>
           {items.length > 0 && (
-            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={onClearCart}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={onClearCart}
+            >
               Vider
             </Button>
           )}
@@ -62,7 +73,7 @@ export function Cart({
 
         {/* Currency Selector */}
         <Select value={currency?.id} onValueChange={(id) => onSelectCurrency(currencies.find((c) => c.id === id))}>
-          <SelectTrigger className="bg-secondary border-border">
+          <SelectTrigger className="bg-background/80 backdrop-blur-sm border-border/50">
             <SelectValue placeholder="Devise" />
           </SelectTrigger>
           <SelectContent>
@@ -75,8 +86,8 @@ export function Cart({
         </Select>
       </div>
 
-      {/* Passenger Info */}
-      <div className="p-4 border-b border-border">
+      {/* Passenger Info avec style */}
+      <div className="p-4 border-b border-border bg-muted/30">
         <Button
           variant={passengerInfo ? "secondary" : "outline"}
           className="w-full justify-start gap-2"
@@ -189,28 +200,32 @@ export function Cart({
         )}
       </div>
 
-      {/* Cart Footer */}
-      <div className="p-4 border-t border-border space-y-4 bg-secondary/30">
+      {/* Cart Footer avec style moderne */}
+      <div className="p-4 border-t border-border space-y-4 bg-gradient-to-br from-muted/50 to-muted/30">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Sous-total HT</span>
-            <span>
+            <span className="font-medium">
               {formatPrice(total)} {currency?.code}
             </span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">TVA (18%)</span>
-            <span>{formatPrice(taxAmount)} {currency?.code}</span>
+            <span className="font-medium">{formatPrice(taxAmount)} {currency?.code}</span>
           </div>
           <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
             <span>Total TTC</span>
-            <span className="text-primary">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70">
               {formatPrice(totalWithTax)} {currency?.code}
             </span>
           </div>
         </div>
 
-        <Button className="w-full h-12 text-lg" disabled={items.length === 0} onClick={onCheckout}>
+        <Button
+          className="w-full h-12 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+          disabled={items.length === 0}
+          onClick={onCheckout}
+        >
           Encaisser
         </Button>
       </div>

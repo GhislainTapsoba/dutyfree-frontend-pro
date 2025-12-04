@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { authService } from "@/lib/api/services/auth.service"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
+import { setupTokenExpirationHandler } from "@/lib/api/token-refresh"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null)
@@ -13,6 +14,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true)
+    // Démarrer le gestionnaire d'expiration du token
+    setupTokenExpirationHandler()
   }, [])
 
   useEffect(() => {

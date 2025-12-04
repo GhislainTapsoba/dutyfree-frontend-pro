@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Loader2 } from "lucide-react"
+import { api } from "@/lib/api/client"
+import { toast } from "sonner"
 
 interface UserFormProps {
   user?: any
@@ -37,18 +39,26 @@ export function UserForm({ user, roles, pointOfSales }: UserFormProps) {
     setLoading(true)
 
     try {
-      const response = await fetch(user ? `/api/users/${user.id}` : "/api/auth/register", {
-        method: user ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
+      let response
 
-      if (response.ok) {
+      if (user) {
+        // Mode édition
+        response = await api.put(`/users/${user.id}`, formData)
+      } else {
+        // Mode création
+        response = await api.post("/auth/register", formData)
+      }
+
+      if (response.data) {
+        toast.success(user ? "Utilisateur modifié avec succès" : "Utilisateur créé avec succès")
         router.push("/dashboard/users")
         router.refresh()
+      } else if (response.error) {
+        toast.error(response.error)
       }
     } catch (error) {
       console.error("Error saving user:", error)
+      toast.error("Erreur lors de l'enregistrement")
     } finally {
       setLoading(false)
     }
