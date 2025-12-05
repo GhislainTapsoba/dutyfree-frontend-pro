@@ -291,9 +291,15 @@ Code douanier: ${sheet.hs_code || '-'}
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="ml-4">Chargement des produits...</p>
+      <div className="flex flex-col items-center justify-center h-96 space-y-4">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-900 rounded-full"></div>
+          <div className="w-16 h-16 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin absolute top-0 left-0"></div>
+        </div>
+        <div className="text-center space-y-2">
+          <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">Chargement des fiches techniques...</p>
+          <p className="text-sm text-muted-foreground">Veuillez patienter</p>
+        </div>
       </div>
     )
   }
@@ -301,36 +307,45 @@ Code douanier: ${sheet.hs_code || '-'}
   console.log('Render - Products:', products.length, 'Sheets:', sheets.length)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Fiches Techniques</h1>
-          <p className="text-muted-foreground">
+    <div className="space-y-6 p-6">
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-sm">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            Fiches Techniques
+          </h1>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            <FileText className="w-4 h-4" />
             Gestion des fiches techniques produits ({products.length} produits disponibles)
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()}>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Nouvelle fiche
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/10">
             <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>
+              <DialogHeader className="border-b pb-4 mb-6">
+                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   {editingSheet ? "Modifier la fiche technique" : "Nouvelle fiche technique"}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-base">
                   Informations détaillées sur le produit
                 </DialogDescription>
               </DialogHeader>
 
               <div className="grid gap-6 py-4">
                 {/* Identification */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Identification</h3>
+                <div className="space-y-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <h3 className="font-semibold text-base text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
+                    Identification
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="product_id">Produit *</Label>
@@ -369,8 +384,11 @@ Code douanier: ${sheet.hs_code || '-'}
                 </div>
 
                 {/* Composition */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Composition</h3>
+                <div className="space-y-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <h3 className="font-semibold text-base text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
+                    Composition
+                  </h3>
                   <div className="grid gap-4">
                     <div>
                       <Label htmlFor="ingredients">Ingrédients</Label>
@@ -397,8 +415,11 @@ Code douanier: ${sheet.hs_code || '-'}
                 </div>
 
                 {/* Informations nutritionnelles */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Informations nutritionnelles (pour 100g)</h3>
+                <div className="space-y-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <h3 className="font-semibold text-base text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
+                    Informations nutritionnelles (pour 100g)
+                  </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <Label>Calories (kcal)</Label>
@@ -510,8 +531,11 @@ Code douanier: ${sheet.hs_code || '-'}
                 </div>
 
                 {/* Caractéristiques */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Caractéristiques</h3>
+                <div className="space-y-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <h3 className="font-semibold text-base text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
+                    Caractéristiques
+                  </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="country_of_origin">Pays d'origine</Label>
@@ -591,8 +615,11 @@ Code douanier: ${sheet.hs_code || '-'}
                 </div>
 
                 {/* Dimensions */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold text-sm">Dimensions</h3>
+                <div className="space-y-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                  <h3 className="font-semibold text-base text-blue-900 dark:text-blue-100 flex items-center gap-2">
+                    <div className="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
+                    Dimensions
+                  </h3>
                   <div className="grid grid-cols-4 gap-4">
                     <div>
                       <Label>Longueur</Label>
@@ -673,60 +700,94 @@ Code douanier: ${sheet.hs_code || '-'}
                 </div>
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <DialogFooter className="border-t pt-6 mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                >
                   Annuler
                 </Button>
-                <Button type="submit">{editingSheet ? "Modifier" : "Créer"}</Button>
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  {editingSheet ? "Modifier" : "Créer"}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <Card>
+      <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Code fiche</TableHead>
-              <TableHead>Produit</TableHead>
-              <TableHead>Code produit</TableHead>
-              <TableHead>Origine</TableHead>
-              <TableHead>Poids net</TableHead>
-              <TableHead>Code douanier (HS)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b-2 border-blue-200 dark:border-blue-800">
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Code fiche</TableHead>
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Produit</TableHead>
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Code produit</TableHead>
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Origine</TableHead>
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Poids net</TableHead>
+              <TableHead className="font-semibold text-blue-900 dark:text-blue-100">Code douanier (HS)</TableHead>
+              <TableHead className="text-right font-semibold text-blue-900 dark:text-blue-100">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sheets.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>Aucune fiche technique trouvée</p>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-full">
+                      <FileText className="w-12 h-12 text-blue-400 dark:text-blue-600" />
+                    </div>
+                    <p className="text-lg font-medium">Aucune fiche technique trouvée</p>
+                    <p className="text-sm text-muted-foreground">Créez votre première fiche technique pour commencer</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               sheets.map((sheet) => (
-                <TableRow key={sheet.id}>
-                  <TableCell className="font-mono font-semibold text-primary">{sheet.sheet_code}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{sheet.product?.name_fr || '-'}</div>
+                <TableRow
+                  key={sheet.id}
+                  className="hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all duration-200 border-b border-gray-100 dark:border-gray-800"
+                >
+                  <TableCell className="font-mono font-semibold text-blue-600 dark:text-blue-400">
+                    {sheet.sheet_code}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="font-mono">{sheet.product?.code || '-'}</Badge>
+                    <div className="font-medium text-gray-900 dark:text-gray-100">
+                      {sheet.product?.name_fr || '-'}
+                    </div>
                   </TableCell>
-                  <TableCell>{sheet.country_of_origin || "-"}</TableCell>
-                  <TableCell>{sheet.net_weight ? `${sheet.net_weight}g` : "-"}</TableCell>
                   <TableCell>
-                    <span className="font-mono text-sm font-semibold">{sheet.hs_code || "-"}</span>
+                    <Badge
+                      variant="outline"
+                      className="font-mono bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300"
+                    >
+                      {sheet.product?.code || '-'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-gray-700 dark:text-gray-300">
+                    {sheet.country_of_origin || "-"}
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-700 dark:text-gray-300">
+                    {sheet.net_weight ? `${sheet.net_weight}g` : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-mono text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                      {sheet.hs_code || "-"}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleView(sheet)}
                         title="Voir"
+                        className="hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
                       >
                         <FileText className="w-4 h-4" />
                       </Button>
@@ -735,22 +796,25 @@ Code douanier: ${sheet.hs_code || '-'}
                         size="icon"
                         onClick={() => handleOpenDialog(sheet)}
                         title="Modifier"
+                        className="hover:bg-amber-100 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-200"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleDelete(sheet.id)}
                         title="Supprimer"
+                        className="hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
                       >
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => handleDownload(sheet)}
                         title="Télécharger"
+                        className="hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
@@ -766,54 +830,82 @@ Code douanier: ${sheet.hs_code || '-'}
       {/* Modal de visualisation */}
       {viewingSheet && (
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Fiche Technique - {viewingSheet.sheet_code}</DialogTitle>
-              <DialogDescription>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/10">
+            <DialogHeader className="border-b pb-4 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+              <DialogTitle className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                Fiche Technique - {viewingSheet.sheet_code}
+              </DialogTitle>
+              <DialogDescription className="text-base font-medium">
                 {viewingSheet.product?.name_fr} ({viewingSheet.product?.code})
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Pays d'origine</Label>
-                  <p className="p-2 bg-secondary rounded">{viewingSheet.country_of_origin || viewingSheet.origin_country || '-'}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Pays d'origine</Label>
+                  <p className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900/30 text-gray-900 dark:text-gray-100">
+                    {viewingSheet.country_of_origin || viewingSheet.origin_country || '-'}
+                  </p>
                 </div>
-                <div>
-                  <Label>Code douanier (HS)</Label>
-                  <p className="p-2 bg-secondary rounded font-mono">{viewingSheet.hs_code || '-'}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Code douanier (HS)</Label>
+                  <p className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900/30 font-mono text-indigo-600 dark:text-indigo-400 font-semibold">
+                    {viewingSheet.hs_code || '-'}
+                  </p>
                 </div>
-                <div>
-                  <Label>Poids net</Label>
-                  <p className="p-2 bg-secondary rounded">{viewingSheet.net_weight ? `${viewingSheet.net_weight}g` : '-'}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Poids net</Label>
+                  <p className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900/30 text-gray-900 dark:text-gray-100">
+                    {viewingSheet.net_weight ? `${viewingSheet.net_weight}g` : '-'}
+                  </p>
                 </div>
-                <div>
-                  <Label>Poids brut</Label>
-                  <p className="p-2 bg-secondary rounded">{viewingSheet.gross_weight ? `${viewingSheet.gross_weight}g` : '-'}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Poids brut</Label>
+                  <p className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900/30 text-gray-900 dark:text-gray-100">
+                    {viewingSheet.gross_weight ? `${viewingSheet.gross_weight}g` : '-'}
+                  </p>
                 </div>
               </div>
               {viewingSheet.ingredients && (
-                <div>
-                  <Label>Ingrédients</Label>
-                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.ingredients}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Ingrédients</Label>
+                  <p className="p-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg border border-blue-100 dark:border-blue-900/30 text-sm text-gray-900 dark:text-gray-100">
+                    {viewingSheet.ingredients}
+                  </p>
                 </div>
               )}
               {viewingSheet.allergens && (
-                <div>
-                  <Label>Allergènes</Label>
-                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.allergens}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Allergènes</Label>
+                  <p className="p-3 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-lg border border-amber-200 dark:border-amber-900/30 text-sm text-gray-900 dark:text-gray-100">
+                    {viewingSheet.allergens}
+                  </p>
                 </div>
               )}
               {viewingSheet.storage_conditions && (
-                <div>
-                  <Label>Conditions de stockage</Label>
-                  <p className="p-2 bg-secondary rounded text-sm">{viewingSheet.storage_conditions}</p>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-blue-900 dark:text-blue-100">Conditions de stockage</Label>
+                  <p className="p-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg border border-green-200 dark:border-green-900/30 text-sm text-gray-900 dark:text-gray-100">
+                    {viewingSheet.storage_conditions}
+                  </p>
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Fermer</Button>
-              <Button onClick={() => handleDownload(viewingSheet)}>Télécharger</Button>
+            <DialogFooter className="border-t pt-6 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setViewDialogOpen(false)}
+                className="hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+              >
+                Fermer
+              </Button>
+              <Button
+                onClick={() => handleDownload(viewingSheet)}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Télécharger
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
