@@ -48,12 +48,12 @@ export function ReportsDashboard({
   const safeCashierStats = Array.isArray(cashierStats) ? cashierStats : []
 
   // Calculate KPIs from summary data passed as props
-  const totalRevenue = (salesData as any)?.summary?.total_revenue_ttc || (safeSalesData.reduce((sum, s) => sum + Number(s.total_ttc || s.total_amount || 0), 0))
+  const totalRevenue = (salesData as any)?.summary?.total_revenue_ttc || (safeSalesData.reduce((sum: number, s: any) => sum + Number(s.total_ttc || s.total_amount || 0), 0))
   const ticketCount = (salesData as any)?.summary?.ticket_count || safeSalesData.length
   const avgTicket = (salesData as any)?.summary?.average_ticket || (ticketCount > 0 ? totalRevenue / ticketCount : 0)
 
   // Group sales by day for chart
-  const salesByDay = safeSalesData.reduce((acc: any, sale) => {
+  const salesByDay = safeSalesData.reduce((acc: any, sale: any) => {
     const dateStr = sale.sale_date || sale.created_at
     if (!dateStr) return acc
     const day = new Date(dateStr).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })
@@ -122,7 +122,7 @@ export function ReportsDashboard({
         doc.setFontSize(10)
         doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 105, 22, { align: 'center' } as any)
         
-        const tableData = safeSalesData.slice(0, 50).map(sale => [
+        const tableData = safeSalesData.slice(0, 50).map((sale: any) => [
           sale.ticket_number,
           new Date(sale.sale_date).toLocaleDateString('fr-FR'),
           sale.total_ttc?.toFixed(2) || '0',
@@ -460,7 +460,7 @@ export function ReportsDashboard({
                         outerRadius={110}
                         paddingAngle={3}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
                       >
                         {pieData.map((entry, index) => (

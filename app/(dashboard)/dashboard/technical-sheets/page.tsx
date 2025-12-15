@@ -43,6 +43,7 @@ interface TechnicalSheet {
   allergens: string | null
   nutritional_info: any
   country_of_origin: string | null
+  origin_country?: string | null
   net_weight: number | null
   gross_weight: number | null
   dimensions: any

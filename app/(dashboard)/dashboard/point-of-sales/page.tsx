@@ -60,7 +60,7 @@ export default function PointOfSalesPage() {
     try {
       const response = await api.get("/point-of-sales")
       if (response.data) {
-        setPointsOfSale(response.data)
+        setPointsOfSale(Array.isArray(response.data) ? response.data : [])
       } else if (response.error) {
         toast.error(response.error)
       }

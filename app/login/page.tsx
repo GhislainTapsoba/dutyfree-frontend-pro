@@ -63,22 +63,6 @@ export default function LoginPage() {
 
           {/* Main Content */}
           <div className="space-y-8 max-w-lg">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-lg">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-sm font-semibold text-white">Système de gestion moderne</span>
-              </div>
-              <h1 className="text-6xl font-black leading-tight">
-                <span className="text-white drop-shadow-2xl">Gérez votre</span>
-                <br />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 drop-shadow-lg">boutique duty free</span>
-                <br />
-                <span className="text-white drop-shadow-2xl">en toute simplicité</span>
-              </h1>
-              <p className="text-xl text-white/95 leading-relaxed font-light max-w-xl">
-                Une solution complète et intuitive pour la gestion des ventes, du stock, de la comptabilité et des rapports en temps réel.
-              </p>
-            </div>
 
             {/* Features */}
             <div className="grid gap-4 pt-8">

@@ -109,7 +109,7 @@ export default function MenusPage() {
     setLoading(true)
     try {
       const response = await api.get<{ data: Menu[] }>("/menus")
-      setMenus(response.data || [])
+      setMenus(Array.isArray(response.data) ? response.data : response.data?.data || [])
     } catch (error: any) {
       toast.error("Erreur lors du chargement des menus")
       console.error(error)
@@ -121,7 +121,7 @@ export default function MenusPage() {
   const loadProducts = async () => {
     try {
       const response = await api.get<{ data: Product[] }>("/products")
-      setProducts(response.data || [])
+      setProducts(Array.isArray(response.data) ? response.data : response.data?.data || [])
     } catch (error) {
       console.error("Erreur lors du chargement des produits:", error)
     }
@@ -161,7 +161,8 @@ export default function MenusPage() {
   const handleView = async (menu: Menu) => {
     try {
       const response = await api.get<{ data: Menu }>(`/menus/${menu.id}`)
-      setViewingMenu(response.data)
+      const menuData = (response.data as any)?.data || response.data
+      setViewingMenu(menuData as Menu | null)
       setViewDialogOpen(true)
     } catch (error) {
       toast.error("Erreur lors du chargement des détails")

@@ -65,7 +65,7 @@ export default function CurrenciesPage() {
     try {
       const response = await api.get("/currencies")
       if (response.data) {
-        setCurrencies(response.data)
+        setCurrencies(Array.isArray(response.data) ? response.data : [])
       } else if (response.error) {
         toast.error(response.error)
       }

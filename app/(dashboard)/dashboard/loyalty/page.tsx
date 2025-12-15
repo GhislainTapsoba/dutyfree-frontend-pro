@@ -60,6 +60,7 @@ interface LoyaltyCard {
   expiry_date: string | null
   is_active: boolean
   created_at: string
+  transactions?: any[]
 }
 
 interface LoyaltyStats {

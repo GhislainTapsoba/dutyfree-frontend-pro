@@ -12,7 +12,7 @@ export interface RegisterData {
   role_id: string
 }
 
-export interface User {
+export interface AuthUser {
   id: string
   email: string
   full_name: string
@@ -50,7 +50,7 @@ export const authService = {
    * Connexion utilisateur
    */
   async login(credentials: LoginCredentials) {
-    const response = await api.post<{ user: User; token: string }>('/auth/login', credentials)
+    const response = await api.post<{ user: AuthUser; token: string }>('/auth/login', credentials)
 
     if (response.data?.token) {
       api.setToken(response.data.token)
@@ -69,7 +69,7 @@ export const authService = {
    * Inscription utilisateur
    */
   async register(data: RegisterData) {
-    return api.post<{ user: User }>('/auth/register', data)
+    return api.post<{ user: AuthUser }>('/auth/register', data)
   },
 
   /**
@@ -88,7 +88,7 @@ export const authService = {
    * Récupérer l'utilisateur connecté
    */
   async getAuthenticatedUser() {
-    return api.get<User>('/me')
+    return api.get<AuthUser>('/me')
   },
 
   /**
@@ -108,7 +108,7 @@ export const authService = {
   /**
    * Récupérer l'utilisateur depuis le token JWT
    */
-  getUserFromToken(): User | null {
+  getUserFromToken(): AuthUser | null {
     if (typeof window === 'undefined') return null
     
     // Récupérer les données utilisateur depuis localStorage

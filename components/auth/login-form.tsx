@@ -59,17 +59,17 @@ export function LoginForm() {
 
   return (
     <Card className="border-border/50 bg-card shadow-lg">
-      <CardContent className="pt-6 pb-8">
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <CardContent className="pt-5 pb-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20">
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 py-2">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-xs font-medium text-muted-foreground">
               Adresse email
             </Label>
             <div className="relative">
@@ -81,14 +81,14 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="pl-10 h-11 bg-background border-border/50 focus:border-primary transition-colors"
+                className="pl-10 h-10 bg-background border-border/50 focus:border-primary transition-colors"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm font-medium">
+              <Label htmlFor="password" className="text-xs font-medium text-muted-foreground">
                 Mot de passe
               </Label>
               <button
@@ -96,7 +96,7 @@ export function LoginForm() {
                 className="text-xs text-primary hover:underline font-medium transition-colors"
                 onClick={() => {}}
               >
-                Mot de passe oublié ?
+                Oublié ?
               </button>
             </div>
             <div className="relative">
@@ -108,7 +108,7 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="pl-10 pr-10 h-11 bg-background border-border/50 focus:border-primary transition-colors"
+                className="pl-10 pr-10 h-10 bg-background border-border/50 focus:border-primary transition-colors"
               />
               <button
                 type="button"
@@ -122,22 +122,21 @@ export function LoginForm() {
 
           <Button
             type="submit"
-            className="w-full h-11 font-medium shadow-md hover:shadow-lg transition-all"
+            className="w-full h-10 font-medium shadow-md hover:shadow-lg transition-all mt-5"
             disabled={loading}
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connexion en cours...
+                Connexion...
               </>
             ) : (
               "Se connecter"
             )}
           </Button>
 
-          {/* Demo Credentials Info */}
-          <div className="pt-4 border-t border-border/50">
-            <p className="text-xs text-center text-muted-foreground">
+          <div className="pt-3 border-t border-border/50">
+            <p className="text-xs text-center text-muted-foreground/70">
               Environnement de test sécurisé
             </p>
           </div>

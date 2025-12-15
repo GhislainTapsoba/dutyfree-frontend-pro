@@ -50,6 +50,7 @@ interface HotelGuest {
   electronic_wallet_balance: number
   is_active: boolean
   created_at: string
+  updated_at?: string
 }
 
 export default function HotelGuestsPage() {
@@ -82,7 +83,7 @@ export default function HotelGuestsPage() {
     try {
       const response = await api.get("/hotel-guests")
       if (response.data) {
-        setGuests(response.data)
+        setGuests(Array.isArray(response.data) ? response.data : [])
       } else if (response.error) {
         toast.error(response.error)
       }
@@ -342,11 +343,11 @@ export default function HotelGuestsPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="card_number">N° Carte à puce</Label>
+                    <Label htmlFor="chip_card_id">N° Carte à puce</Label>
                     <Input
-                      id="card_number"
-                      value={formData.card_number}
-                      onChange={(e) => setFormData({ ...formData, card_number: e.target.value })}
+                      id="chip_card_id"
+                      value={formData.chip_card_id}
+                      onChange={(e) => setFormData({ ...formData, chip_card_id: e.target.value })}
                       placeholder="CARD-XXXX-XXXX"
                     />
                   </div>
@@ -704,10 +705,12 @@ export default function HotelGuestsPage() {
                   <span>Créé le:</span>
                   <span>{format(new Date(viewingGuest.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
                 </div>
-                <div className="flex justify-between mt-1">
-                  <span>Modifié le:</span>
-                  <span>{format(new Date(viewingGuest.updated_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
-                </div>
+                {viewingGuest.updated_at && (
+                  <div className="flex justify-between mt-1">
+                    <span>Modifié le:</span>
+                    <span>{format(new Date(viewingGuest.updated_at), "dd MMM yyyy à HH:mm", { locale: fr })}</span>
+                  </div>
+                )}
               </div>
             </div>
           )}

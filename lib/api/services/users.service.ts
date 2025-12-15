@@ -6,6 +6,7 @@ export interface User {
   full_name: string
   role_id: string
   role_name?: string
+  role?: Role
   is_active: boolean
   created_at: string
 }
