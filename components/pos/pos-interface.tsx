@@ -60,13 +60,21 @@ export function POSInterface({ products: productsProp, categories, currencies, p
         const menusData = await menusRes.json()
         setCompanySettings(settings.data)
         setMenus(menusData.data || [])
-        
+
         const userData = localStorage.getItem('user_data')
         const user = userData ? JSON.parse(userData) : null
         if (user?.id) {
           const sessionRes = await fetch(`${apiUrl}/cash-sessions/current?user_id=${user.id}`)
-          const { data: session } = await sessionRes.json()
-          setCurrentSession(session)
+          const sessionData = await sessionRes.json()
+          console.log('[POS] Session data received:', sessionData)
+
+          if (sessionData.data) {
+            setCurrentSession(sessionData.data)
+          } else if (sessionData.session) {
+            setCurrentSession(sessionData.session)
+          } else {
+            setCurrentSession(sessionData)
+          }
         }
       } catch (err) {
         console.error('Error loading data:', err)
@@ -217,41 +225,94 @@ export function POSInterface({ products: productsProp, categories, currencies, p
   }
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] gap-4">
-      {/* Left Panel - Products */}
-      <div className="flex-1 flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
-        {/* Search & Filters avec gradient */}
-        <div className="relative p-4 border-b border-border space-y-4 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher produit, code-barres..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-colors"
-              />
-            </div>
-            <Button variant="outline" size="icon" className="bg-primary/10 hover:bg-primary/20 border-primary/20 hover:border-primary/30 transition-all">
-              <ScanBarcode className="w-4 h-4 text-primary" />
-            </Button>
-            <div className="flex border border-border rounded-lg">
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="w-4 h-4" />
-              </Button>
+    <div className="flex flex-col h-[calc(100vh-7rem)] gap-4">
+      {/* Session Info Header */}
+      {currentSession && (() => {
+        const openedDate = currentSession.opening_time || currentSession.opened_at || currentSession.created_at
+        const openingBalance = currentSession.opening_cash ?? currentSession.opening_balance ?? currentSession.initial_balance ?? 0
+        const sessionNumber = currentSession.session_number || currentSession.code || 'N/A'
+        const cashRegisterName = currentSession.cash_register?.name || currentSession.cash_registers?.name || 'Caisse'
+        const posName = currentSession.cash_register?.point_of_sale?.name ||
+                       currentSession.cash_registers?.point_of_sale?.name ||
+                       currentSession.point_of_sale?.name ||
+                       currentSession.point_of_sales?.name ||
+                       'N/A'
+
+        return (
+          <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 border border-border/50 rounded-lg p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-lg">💰</span>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Session active</p>
+                  <p className="font-bold text-lg">{cashRegisterName} - {sessionNumber}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Point de vente</p>
+                  <p className="font-semibold">{posName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Ouverture</p>
+                  <p className="font-semibold">
+                    {openedDate ? new Date(openedDate).toLocaleString('fr-FR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : 'N/A'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Fond de caisse</p>
+                  <p className="font-bold text-primary">
+                    {new Intl.NumberFormat("fr-FR").format(Number(openingBalance) || 0)} XOF
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
+        )
+      })()}
+
+      <div className="flex flex-1 gap-4 overflow-hidden">
+        {/* Left Panel - Products */}
+        <div className="flex-1 flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
+          {/* Search & Filters avec gradient */}
+          <div className="relative p-4 border-b border-border space-y-4 bg-gradient-to-r from-primary/5 via-transparent to-primary/5">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher produit, code-barres..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-background/80 backdrop-blur-sm border-border/50 focus:border-primary/50 transition-colors"
+                />
+              </div>
+              <Button variant="outline" size="icon" className="bg-primary/10 hover:bg-primary/20 border-primary/20 hover:border-primary/30 transition-all">
+                <ScanBarcode className="w-4 h-4 text-primary" />
+              </Button>
+              <div className="flex border border-border rounded-lg">
+                <Button
+                  variant={viewMode === "grid" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "list" ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setViewMode("list")}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
 
           {/* Menus rapides */}
           {menus.length > 0 && (
@@ -310,21 +371,22 @@ export function POSInterface({ products: productsProp, categories, currencies, p
         </div>
       </div>
 
-      {/* Right Panel - Cart avec style moderne */}
-      <div className="w-[400px] flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
-        <Cart
-          items={cart}
-          total={cartSubtotal}
-          currency={selectedCurrency}
-          currencies={currencies}
-          passengerInfo={passengerInfo}
-          onUpdateItem={updateCartItem}
-          onRemoveItem={removeFromCart}
-          onClearCart={clearCart}
-          onSelectCurrency={setSelectedCurrency}
-          onAddPassenger={() => setShowPassengerModal(true)}
-          onCheckout={() => setShowPaymentModal(true)}
-        />
+        {/* Right Panel - Cart avec style moderne */}
+        <div className="w-[400px] flex flex-col bg-card rounded-lg border border-border/50 overflow-hidden shadow-lg">
+          <Cart
+            items={cart}
+            total={cartSubtotal}
+            currency={selectedCurrency}
+            currencies={currencies}
+            passengerInfo={passengerInfo}
+            onUpdateItem={updateCartItem}
+            onRemoveItem={removeFromCart}
+            onClearCart={clearCart}
+            onSelectCurrency={setSelectedCurrency}
+            onAddPassenger={() => setShowPassengerModal(true)}
+            onCheckout={() => setShowPaymentModal(true)}
+          />
+        </div>
       </div>
 
       {/* Payment Modal */}

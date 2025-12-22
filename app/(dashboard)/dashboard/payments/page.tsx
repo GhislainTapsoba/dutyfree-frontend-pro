@@ -16,6 +16,7 @@ export default function PaymentsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [detailsError, setDetailsError] = useState<string | null>(null)
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([])
 
   useEffect(() => {
     async function loadData() {
@@ -53,6 +54,23 @@ export default function PaymentsPage() {
       }
     }
     loadProducts()
+  }, [])
+
+  useEffect(() => {
+    async function loadPaymentMethods() {
+      try {
+        const response = await paymentsService.getPaymentMethods()
+        console.log('[Payment Methods] Raw response:', response)
+        if (Array.isArray(response.data)) {
+          setPaymentMethods(response.data)
+        } else if ((response.data as any)?.data) {
+          setPaymentMethods((response.data as any).data)
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des méthodes de paiement:", error)
+      }
+    }
+    loadPaymentMethods()
   }, [])
 
   async function handleViewDetails(payment: PaymentRecord) {
@@ -107,6 +125,19 @@ export default function PaymentsPage() {
     return products.find(p => p.id === productId)
   }
 
+  function getPaymentMethodName(methodId: string): string {
+    const method = paymentMethods.find(m => m.id === methodId)
+    return method?.name || 'Méthode inconnue'
+  }
+
+  function getPaymentReference(payment: PaymentRecord): string {
+    // Priorité: transaction_reference > tpe_reference > authorization_code
+    if (payment.transaction_reference) return payment.transaction_reference
+    if (payment.tpe_reference) return payment.tpe_reference
+    if (payment.authorization_code) return payment.authorization_code
+    return 'N/A'
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -122,7 +153,10 @@ export default function PaymentsPage() {
   const todayPayments = paymentsList.filter((p) => p.created_at?.startsWith(today))
   const totalToday = todayPayments.reduce((sum, p) => sum + (Number(p.amount_xof) || Number((p as any).amount_in_base_currency) || 0), 0)
 
-  const getMethodIcon = (code: string) => {
+  const getMethodIcon = (methodId: string) => {
+    const method = paymentMethods.find(m => m.id === methodId)
+    const code = method?.code || ''
+
     switch (code) {
       case "cash":
         return <Banknote className="w-5 h-5" />
@@ -228,7 +262,7 @@ export default function PaymentsPage() {
                     </div>
                     <div>
                       <p className="font-medium">Vente #{payment.sale_id}</p>
-                      <p className="text-sm text-muted-foreground">{payment.payment_method_name || 'Paiement'}</p>
+                      <p className="text-sm text-muted-foreground">{getPaymentMethodName(payment.payment_method_id)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -296,13 +330,15 @@ export default function PaymentsPage() {
                         <p className="text-muted-foreground">ID de vente</p>
                         <p className="font-medium">{viewingPayment.sale_id}</p>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Référence</p>
-                        <p className="font-medium">{viewingPayment.reference || 'N/A'}</p>
-                      </div>
+                      {getPaymentReference(viewingPayment) !== 'N/A' && (
+                        <div>
+                          <p className="text-muted-foreground">Référence</p>
+                          <p className="font-medium">{getPaymentReference(viewingPayment)}</p>
+                        </div>
+                      )}
                       <div>
                         <p className="text-muted-foreground">Méthode</p>
-                        <p className="font-medium">{viewingPayment.payment_method_name || viewingPayment.payment_method_id}</p>
+                        <p className="font-medium">{getPaymentMethodName(viewingPayment.payment_method_id)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Date</p>
@@ -318,6 +354,24 @@ export default function PaymentsPage() {
                       </div>
                     </div>
 
+                    {/* Informations supplémentaires selon le type de paiement */}
+                    {(viewingPayment.card_last_digits || viewingPayment.mobile_number) && (
+                      <div className="grid grid-cols-2 gap-4 text-sm pt-2 border-t border-border/50">
+                        {viewingPayment.card_last_digits && (
+                          <div>
+                            <p className="text-muted-foreground">Carte</p>
+                            <p className="font-medium font-mono">**** **** **** {viewingPayment.card_last_digits}</p>
+                          </div>
+                        )}
+                        {viewingPayment.mobile_number && (
+                          <div>
+                            <p className="text-muted-foreground">Numéro mobile</p>
+                            <p className="font-medium font-mono">{viewingPayment.mobile_number}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <Separator />
 
                     <div className="flex items-center justify-between">
@@ -327,7 +381,7 @@ export default function PaymentsPage() {
                           {new Intl.NumberFormat("fr-FR").format(viewingPayment.amount)} {viewingPayment.currency}
                         </p>
                       </div>
-                      {viewingPayment.currency !== 'XOF' && (
+                      {viewingPayment.currency !== 'XOF' && viewingPayment.amount_xof && !isNaN(viewingPayment.amount_xof) && (
                         <div className="text-right">
                           <p className="text-sm text-muted-foreground">Équivalent XOF</p>
                           <p className="text-xl font-bold">

@@ -24,7 +24,11 @@ export interface PaymentRecord {
   amount: number
   amount_xof: number
   exchange_rate: number
-  reference?: string
+  transaction_reference?: string
+  tpe_reference?: string
+  authorization_code?: string
+  card_last_digits?: string
+  mobile_number?: string
   created_at: string
 }
 
